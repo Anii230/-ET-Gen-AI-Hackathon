@@ -40,3 +40,6 @@ frontend/.env.local
 
 # Build files
 *.tsbuildinfo
+GSD-STYLE.md
+PROJECT_RULES.md
+model_capabilities.yaml
