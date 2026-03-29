@@ -39,10 +39,12 @@ def rank_articles(
     category_weights: dict
 ) -> list:
     def score(a):
-        base = 1.0
-        cat_boost = category_weights.get(a.category, 0) * 2
-        sentiment_boost = 0.3 if a.sentiment_label == "positive" else 0
-        return base + cat_boost + sentiment_boost
+        # Base score starts high for newness (implicit in current pool)
+        # We boost matching categories aggressively (10x weight)
+        cat_weight = category_weights.get(a.category, 0)
+        cat_boost = cat_weight * 10.0
+        sentiment_boost = 0.5 if a.sentiment_label == "positive" else 0
+        return cat_boost + sentiment_boost
     return sorted(articles, key=score, reverse=True)
 
 @router.get("/", response_model=List[ArticleOut])
@@ -83,11 +85,12 @@ def get_personalised_feed(
     user_id: str = "demo_user",
     db: Session = Depends(get_db)
 ):
+    # Deep pool search to find enough matching articles
     articles = db.query(Article).order_by(
         Article.published_at.desc()
-    ).limit(30).all()
+    ).limit(100).all()
     category_weights = get_user_profile(user_id, db)
-    ranked = rank_articles(articles, category_weights)[:20]
+    ranked = rank_articles(articles, category_weights)[:30]
     result = []
     for a in ranked:
         entities = a.entities

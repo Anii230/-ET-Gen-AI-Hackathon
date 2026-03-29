@@ -75,13 +75,7 @@ export default function AppHomePage() {
     loadFeed();
   }, [activeTab]);
 
-  const displayArticles = articles.filter(article => {
-    if (activeTab === "general" || userTopics.length === 0) return true;
-    // Simple category matching
-    return userTopics.includes(article.category);
-  });
-
-  const bentoArticles = displayArticles.map(mapArticleToBento);
+  const bentoArticles = articles.map(mapArticleToBento);
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
@@ -113,11 +107,11 @@ export default function AppHomePage() {
             Loading feed...
           </div>
         </div>
-      ) : displayArticles.length === 0 ? (
+      ) : articles.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-2xl bg-muted/5 p-8 text-center">
           <p className="text-foreground font-medium mb-1">Nothing matched your interests yet</p>
           <p className="text-muted-foreground text-sm max-w-xs">
-            We haven't found any news in {userTopics.join(", ")} recently.
+            We haven't found any news that matches your curated set of intelligence topic preferences yet.
           </p>
           <button 
             onClick={() => setActiveTab("general")}
