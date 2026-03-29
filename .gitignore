@@ -1,0 +1,42 @@
+adapters/
+.agent/
+design-system/
+docs/
+.gemini/
+.gsd/
+scripts/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+.env
+venv/
+
+# Backend
+backend/__pycache__/
+backend/*.db
+backend/*.log
+backend/.env
+backend/temp.json
+backend/uvicorn.log
+backend/et_news.db
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+
+# General
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build files
+*.tsbuildinfo
