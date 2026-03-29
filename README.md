@@ -129,19 +129,6 @@ Open `http://localhost:3000`. In Supabase, add `http://localhost:3000` as Site U
 
 ---
 
-## Known Limitations
-
-| Limitation | Planned Fix |
-|---|---|
-| No vernacular video generation (PS-8 scenario 3 not implemented) | Integrate ElevenLabs TTS + Remotion for Hindi video pipeline |
-| RSS image coverage ~40% | Add Open Graph image scraping |
-| Article briefing uses short RSS summaries, not full article text | Full article scraping with headless browser |
-| `demo_user` hardcoded in several API calls | Wire Supabase user ID through all backend calls |
-| SQLite not suitable for production concurrency | Migrate to Supabase Postgres |
-| No real-time feed refresh | WebSocket push for breaking news |
-
----
-
 ## Impact
 
 | Metric | Estimate |
