@@ -8,7 +8,7 @@ from typing import Optional, List
 import json
 import logging
 from collections import Counter
-from llm import chat_completion
+from llm import chat_completion_result
 from fetcher import search_external_articles
 
 logger = logging.getLogger("et_news.briefing")
@@ -26,6 +26,15 @@ class BriefingResponse(BaseModel):
     ranked_count: int
     pipeline_steps: List[str] = ["enrichment", "ranking", "synthesis"]
     degraded: bool = False
+    complete: bool = True
+    truncated: bool = False
+    notice: Optional[str] = None
+
+
+INCOMPLETE_BRIEFING_NOTICE = (
+    "The AI stopped before this briefing was finished, so some sections may "
+    "be missing. The reporting above is unchanged."
+)
 
 @router.post("/", response_model=BriefingResponse)
 def generate_briefing(
@@ -67,6 +76,7 @@ def generate_briefing(
         }
     
     articles_dicts = []
+    requested_ids = set(request.article_ids or [])
     for a in articles:
         entities = a.entities
         if isinstance(entities, str):
@@ -74,10 +84,14 @@ def generate_briefing(
                 entities = json.loads(entities)
             except Exception:
                 entities = []
+        # Full text is only needed for the article(s) the reader asked about;
+        # related stories stay summary-sized to keep the prompt bounded.
+        include_content = a.id in requested_ids or not (a.summary or "").strip()
         articles_dicts.append({
             "id": a.id,
             "headline": a.headline,
             "summary": a.summary or "",
+            "content": (a.content or "") if include_content else "",
             "source": a.source,
             "category": a.category,
             "sentiment_label": a.sentiment_label or "neutral",
@@ -94,14 +108,29 @@ def generate_briefing(
         "sources_used": [],
         "error": None,
         "briefing_error": None,
+        "briefing_complete": True,
+        "briefing_truncated": False,
+        "briefing_recovered": False,
+        "focus_article_id": (
+            request.article_ids[0] if request.article_ids else None
+        ),
     })
     
     briefing_error = result.get("briefing_error")
+    complete = bool(result.get("briefing_complete", True))
+    truncated = bool(result.get("briefing_truncated", False))
     return BriefingResponse(
         briefing=result["briefing"],
         sources_used=result["sources_used"],
         ranked_count=len(result["ranked_articles"]),
         degraded=bool(briefing_error),
+        complete=complete,
+        truncated=truncated,
+        notice=(
+            INCOMPLETE_BRIEFING_NOTICE
+            if (not complete and not briefing_error)
+            else None
+        ),
     )
 
 class TopicBriefingRequest(BaseModel):
@@ -218,7 +247,7 @@ Rules:
 - Be specific, not generic
 - If an angle has no relevant data, say so briefly"""
 
-    raw = chat_completion(
+    result = chat_completion_result(
         messages=[
             {
                 "role": "system",
@@ -227,17 +256,39 @@ Rules:
             {"role": "user", "content": prompt}
         ],
         temperature=0.5,
-        max_tokens=600,
+        max_tokens=1600,
     )
-    
-    raw = raw.replace("```json", "").replace("```", "").strip()
+
+    if result.truncated:
+        # The JSON contract cannot tolerate a half-written object. One compact
+        # regeneration is cheaper than guessing which fields survived.
+        logger.warning("Topic briefing hit the output limit; retrying compactly")
+        result = chat_completion_result(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert Indian financial analyst. Return only valid JSON, no markdown, no backticks."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                    + "\n\nReturn a shorter but COMPLETE JSON object. Keep each value "
+                    "to one or two sentences and close every brace.",
+                },
+            ],
+            temperature=0.5,
+            max_tokens=1000,
+        )
+
+    raw = result.content.replace("```json", "").replace("```", "").strip()
     
     try:
         parsed = json.loads(raw)
     except Exception as exc:
         logger.warning(
-            "Topic briefing returned unparseable JSON (topic_length=%d)",
+            "Topic briefing returned unparseable JSON (topic_length=%d, finish_reason=%s)",
             len(request.topic),
+            result.finish_reason,
         )
         raise HTTPException(
             status_code=502,

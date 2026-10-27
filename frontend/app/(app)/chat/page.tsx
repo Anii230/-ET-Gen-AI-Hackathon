@@ -8,6 +8,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { CategoryTag } from "@/components/ui/category-tag";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Markdown } from "@/components/markdown/Markdown";
 import { sendChatMessage, getBriefing, getFeed, ApiError, Article } from "@/lib/api";
 import { cn, formatHeadline } from "@/lib/utils";
 
@@ -62,70 +63,6 @@ function SourcesAccordion({ sources }: { sources: Article[] }) {
     </div>
   );
 }
-
-const InlineMarkdown = ({ text }: { text: string }) => {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith("**") && part.endsWith("**")) {
-          return (
-            <strong key={i} className="font-semibold text-foreground">
-              {part.slice(2, -2)}
-            </strong>
-          );
-        }
-        return part;
-      })}
-    </>
-  );
-};
-
-const Markdown = ({ content }: { content: string }) => {
-  if (!content) return null;
-
-  const lines = content.split("\n");
-
-  return (
-    <div className="space-y-3">
-      {lines.map((line, idx) => {
-        if (line.startsWith("### ")) {
-          return (
-            <h3
-              key={idx}
-              className="mb-2 mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground first:mt-0"
-            >
-              {line.replace("### ", "")}
-            </h3>
-          );
-        }
-
-        if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
-          const text = line.trim().substring(2);
-          return (
-            <div key={idx} className="flex gap-2 pl-1">
-              <div
-                aria-hidden
-                className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-muted-foreground/60"
-              />
-              <p className="flex-1 text-[13.5px] leading-relaxed text-foreground/90">
-                <InlineMarkdown text={text} />
-              </p>
-            </div>
-          );
-        }
-
-        if (line.trim() === "") return <div key={idx} className="h-1" />;
-
-        return (
-          <p key={idx} className="text-[13.5px] leading-relaxed text-foreground/90">
-            <InlineMarkdown text={line} />
-          </p>
-        );
-      })}
-    </div>
-  );
-};
 
 function ChatSkeleton() {
   return (
@@ -339,7 +276,7 @@ function ChatPageInner() {
                 className={cn(
                   "max-w-[88%] text-[13px] leading-relaxed sm:max-w-[80%]",
                   msg.role === "user"
-                    ? "rounded-xl rounded-br-sm bg-accent px-3.5 py-2 text-white"
+                    ? "rounded-xl rounded-br-sm bg-accent px-3.5 py-2 text-primary-foreground"
                     : "rounded-xl rounded-bl-sm border border-border bg-card px-4 py-3 text-foreground"
                 )}
               >

@@ -101,7 +101,7 @@ const INJECTED_STYLES = `
 
   .card-sheen {
     position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 50;
-    background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99,102,241,0.07) 0%, transparent 40%);
+    background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137,220,235,0.07) 0%, transparent 40%);
     mix-blend-mode: screen; transition: opacity 0.3s ease;
   }
 
@@ -164,27 +164,27 @@ const INJECTED_STYLES = `
     transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   }
   .btn-cta-primary {
-    background: linear-gradient(180deg, #818cf8 0%, #6366f1 60%, #4f46e5 100%);
-    color: #ffffff;
+    background: linear-gradient(180deg, #a6e3f1 0%, #89dceb 55%, #5bc0d4 100%);
+    color: #11111b;
     box-shadow: 
-      0 0 0 1px rgba(99,102,241,0.3), 
+      0 0 0 1px rgba(137,220,235,0.35),
       0 2px 4px rgba(0,0,0,0.4), 
-      0 12px 24px -4px rgba(99,102,241,0.4),
+      0 12px 24px -4px rgba(137,220,235,0.45),
       inset 0 1px 1px rgba(255,255,255,0.25),
       inset 0 -3px 6px rgba(0,0,0,0.2);
   }
   .btn-cta-primary:hover {
     transform: translateY(-3px);
     box-shadow: 
-      0 0 0 1px rgba(99,102,241,0.4), 
-      0 6px 12px -2px rgba(99,102,241,0.3), 
-      0 20px 32px -6px rgba(99,102,241,0.5),
+      0 0 0 1px rgba(137,220,235,0.45),
+      0 6px 12px -2px rgba(137,220,235,0.35),
+      0 20px 32px -6px rgba(137,220,235,0.5),
       inset 0 1px 1px rgba(255,255,255,0.3),
       inset 0 -3px 6px rgba(0,0,0,0.2);
   }
   .btn-cta-primary:active {
     transform: translateY(1px);
-    box-shadow: 0 0 0 1px rgba(99,102,241,0.3), inset 0 3px 6px rgba(0,0,0,0.2);
+    box-shadow: 0 0 0 1px rgba(137,220,235,0.35), inset 0 3px 6px rgba(0,0,0,0.2);
   }
   :root .btn-cta-ghost {
     background: rgba(0,0,0,0.04);
@@ -367,7 +367,7 @@ export function CinematicHero({
           <Link
             href="/login"
             aria-label="Start Reading ET AI News"
-            className="btn-cta-primary flex items-center justify-center gap-2 px-8 py-4 rounded-[1.25rem] text-base font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-background"
+            className="btn-cta-primary flex items-center justify-center gap-2 px-8 py-4 rounded-[1.25rem] text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           >
             Start Reading
             <ArrowRight className="w-4 h-4" />
@@ -375,7 +375,7 @@ export function CinematicHero({
           <a
             href="#how-it-works"
             aria-label="See how ET AI News works"
-            className="btn-cta-ghost flex items-center justify-center gap-2 px-8 py-4 rounded-[1.25rem] text-base font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            className="btn-cta-ghost flex items-center justify-center gap-2 px-8 py-4 rounded-[1.25rem] text-base font-medium focus:outline-none focus:ring-2 focus:ring-accent/30"
           >
             See how it works
           </a>
@@ -395,7 +395,7 @@ export function CinematicHero({
             {/* Right / Top: Brand name */}
             <div className="card-right-text gsap-reveal order-1 lg:order-3 flex justify-center lg:justify-end z-20 w-full">
               <h2 className="text-6xl md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-card-silver-matte">
-                ET<span className="text-indigo-400/80">·</span>AI
+                ET<span className="text-accent/80">·</span>AI
               </h2>
             </div>
 
@@ -427,13 +427,13 @@ export function CinematicHero({
                           <span className="text-[10px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Today</span>
                           <span className="text-lg font-bold tracking-tight text-white">ET AI</span>
                         </div>
-                        <div className="w-9 h-9 rounded-full bg-indigo-600/20 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30">AN</div>
+                        <div className="w-9 h-9 rounded-full bg-accent-soft text-accent-soft-foreground flex items-center justify-center font-bold text-xs border border-accent/30">AN</div>
                       </div>
 
                       <div className="space-y-2.5 flex-1">
-                        <div className="phone-widget widget-depth rounded-xl p-3 flex gap-2.5 items-start border-l-2 border-indigo-500">
+                        <div className="phone-widget widget-depth rounded-xl p-3 flex gap-2.5 items-start border-l-2 border-accent">
                           <div className="flex-1 min-w-0">
-                            <span className="text-[8px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full inline-block mb-1.5">AI</span>
+                            <span className="text-[8px] font-bold uppercase tracking-widest text-accent bg-accent-soft px-1.5 py-0.5 rounded-full inline-block mb-1.5">AI</span>
                             <p className="text-white text-[11px] font-semibold leading-snug line-clamp-2">OpenAI GPT-5 Redefines Benchmarks</p>
                             <div className="mt-1.5 space-y-1">
                               <div className="h-1.5 w-full bg-neutral-700/60 rounded-full" />
@@ -470,8 +470,8 @@ export function CinematicHero({
 
                 {/* Floating badge — Feed ready */}
                 <div className="floating-badge absolute flex top-6 lg:top-12 left-[-15px] lg:left-[-80px] floating-ui-badge rounded-xl lg:rounded-2xl p-3 lg:p-4 items-center gap-3 z-30">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-indigo-500/15 flex items-center justify-center border border-indigo-400/25 flex-shrink-0">
-                    <Newspaper className="w-4 h-4 text-indigo-500" strokeWidth={1.5} />
+                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-accent-soft flex items-center justify-center border border-accent/25 flex-shrink-0">
+                    <Newspaper className="w-4 h-4 text-primary" strokeWidth={1.5} />
                   </div>
                   <div>
                     <p className="text-foreground text-xs lg:text-sm font-bold tracking-tight">Feed ready</p>
@@ -481,8 +481,8 @@ export function CinematicHero({
 
                 {/* Floating badge — AI briefing */}
                 <div className="floating-badge absolute flex bottom-12 lg:bottom-20 right-[-15px] lg:right-[-80px] floating-ui-badge rounded-xl lg:rounded-2xl p-3 lg:p-4 items-center gap-3 z-30">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-indigo-500/15 flex items-center justify-center border border-indigo-400/25 flex-shrink-0">
-                    <Brain className="w-4 h-4 text-indigo-500" strokeWidth={1.5} />
+                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-accent-soft flex items-center justify-center border border-accent/25 flex-shrink-0">
+                    <Brain className="w-4 h-4 text-primary" strokeWidth={1.5} />
                   </div>
                   <div>
                     <p className="text-foreground text-xs lg:text-sm font-bold tracking-tight">AI briefing</p>

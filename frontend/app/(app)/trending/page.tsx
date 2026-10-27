@@ -13,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { Markdown } from "@/components/markdown/Markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStoryArcs, getBriefing, StoryArc } from "@/lib/api";
 import { cn, decodeEntities, formatHeadline, pluralize } from "@/lib/utils";
@@ -35,25 +37,6 @@ function sentimentDot(sentiment: string): string {
   if (sentiment === "positive") return "bg-success";
   if (sentiment === "negative") return "bg-destructive";
   return "bg-muted-foreground";
-}
-
-function MarkdownText({ content }: { content: string }) {
-  if (!content) return null;
-  const parts = content.split(/(\*\*.*?\*\*)/g);
-  return (
-    <>
-      {parts.map((part, index) => {
-        if (part.startsWith("**") && part.endsWith("**")) {
-          return (
-            <strong key={index} className="font-semibold text-foreground">
-              {part.slice(2, -2)}
-            </strong>
-          );
-        }
-        return part;
-      })}
-    </>
-  );
 }
 
 function SentimentChart({
@@ -322,7 +305,7 @@ export default function TrendingPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8">
+      <PageContainer className="py-6 sm:py-8">
         <Skeleton className="h-7 w-40" />
         <Skeleton className="mt-2 h-3 w-72" />
         <div className="mt-8 grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -338,24 +321,24 @@ export default function TrendingPage() {
             <Skeleton className="h-40 w-full rounded-xl" />
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="mx-auto w-full max-w-[1280px] px-4 py-16 sm:px-6">
+      <PageContainer className="py-16">
         <ErrorState
           title="Story arcs unavailable"
           message={error}
           onRetry={() => setReloadKey((key) => key + 1)}
         />
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8">
+    <PageContainer className="py-6 sm:py-8">
       <header className="mb-6">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted">
@@ -542,9 +525,9 @@ export default function TrendingPage() {
                           <Skeleton className="h-3.5 w-2/3" />
                         </div>
                       ) : (
-                        <p className="text-[13.5px] leading-relaxed text-foreground/85">
-                          <MarkdownText content={summaryResult} />
-                        </p>
+                        <div className="text-[13.5px] leading-relaxed text-foreground/85">
+                          <Markdown content={summaryResult} />
+                        </div>
                       )}
                     </div>
                   ) : null}
@@ -617,15 +600,15 @@ export default function TrendingPage() {
                       What to watch
                     </h3>
                   </div>
-                  <p className="text-[13.5px] leading-relaxed text-foreground/85">
-                    <MarkdownText content={decodeEntities(selected.what_to_watch)} />
-                  </p>
+                  <div className="text-[13.5px] leading-relaxed text-foreground/85">
+                    <Markdown content={selected.what_to_watch} />
+                  </div>
                 </section>
               ) : null}
             </article>
           ) : null}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

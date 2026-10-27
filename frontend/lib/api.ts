@@ -185,6 +185,12 @@ export type BriefingResponse = {
   ranked_count: number;
   pipeline_steps: string[];
   degraded?: boolean;
+  /** False when the provider stopped before the requested structure was done. */
+  complete?: boolean;
+  /** True when the response hit the output-token ceiling. */
+  truncated?: boolean;
+  /** Non-alarming explanation for an incomplete briefing. */
+  notice?: string | null;
 };
 
 export async function getBriefing(

@@ -54,7 +54,7 @@ export function CategoryPicker({
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 isSelected
-                  ? "border-accent bg-accent text-white"
+                  ? "border-accent bg-accent text-primary-foreground"
                   : "border-border-hover bg-background"
               )}
             >

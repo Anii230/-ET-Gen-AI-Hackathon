@@ -169,6 +169,52 @@ class ChatCompletionTests(EnvTestCase):
             self.assertNotIn("reasoning_effort", kwargs)
         llm.reset_client()
 
+    def test_result_surfaces_finish_reason_and_usage(self):
+        os.environ["GROQ_API_KEY"] = "test-key-not-used"
+        llm.reset_client()
+        fake_client = mock.Mock()
+        fake_client.chat.completions.create.return_value = mock.Mock(
+            choices=[
+                mock.Mock(
+                    message=mock.Mock(content="A complete answer."),
+                    finish_reason="stop",
+                )
+            ],
+            usage=mock.Mock(prompt_tokens=120, completion_tokens=45, total_tokens=165),
+        )
+        with mock.patch.object(llm, "get_client", return_value=fake_client):
+            result = llm.chat_completion_result(
+                [{"role": "user", "content": "hi"}]
+            )
+        self.assertEqual(result.content, "A complete answer.")
+        self.assertEqual(result.finish_reason, "stop")
+        self.assertFalse(result.truncated)
+        self.assertEqual(result.prompt_tokens, 120)
+        self.assertEqual(result.completion_tokens, 45)
+        self.assertEqual(result.total_tokens, 165)
+        llm.reset_client()
+
+    def test_length_finish_reason_is_exposed_for_callers(self):
+        os.environ["GROQ_API_KEY"] = "test-key-not-used"
+        llm.reset_client()
+        fake_client = mock.Mock()
+        fake_client.chat.completions.create.return_value = mock.Mock(
+            choices=[
+                mock.Mock(
+                    message=mock.Mock(content="Cut off mid"),
+                    finish_reason="length",
+                )
+            ],
+            usage=None,
+        )
+        with mock.patch.object(llm, "get_client", return_value=fake_client):
+            result = llm.chat_completion_result(
+                [{"role": "user", "content": "hi"}]
+            )
+        self.assertTrue(result.truncated)
+        self.assertIsNone(result.prompt_tokens)
+        llm.reset_client()
+
 
 class NoDeprecatedModelIdsTests(unittest.TestCase):
     def test_backend_source_has_no_retired_llama_ids(self):

@@ -17,7 +17,7 @@ export const mockArticles: Article[] = [
     summary:
       "The latest model from OpenAI achieves near-human performance on complex reasoning tasks, prompting AI labs worldwide to reconsider evaluation methodologies and publication timelines.",
     category: "AI",
-    categoryColor: "indigo",
+    categoryColor: "accent",
     source: "The Verge",
     timestamp: "2 hours ago",
     readTime: 6,
@@ -82,7 +82,7 @@ export const mockArticles: Article[] = [
 ];
 
 export const categoryColorMap: Record<string, string> = {
-  indigo:  "bg-indigo-500/15 text-indigo-400 dark:text-indigo-300",
+  accent:  "bg-teal-500/15 text-teal-600 dark:text-teal-300",
   emerald: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
   blue:    "bg-blue-500/15 text-blue-600 dark:text-blue-400",
   orange:  "bg-orange-500/15 text-orange-600 dark:text-orange-400",
@@ -91,7 +91,7 @@ export const categoryColorMap: Record<string, string> = {
 };
 
 export const categoryStyles: Record<string, { pill: string; bar: string }> = {
-  indigo:  { pill: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",   bar: "bg-indigo-500" },
+  accent:  { pill: "bg-teal-500/10 text-teal-600 border border-teal-500/25 dark:text-teal-300", bar: "bg-teal-500" },
   emerald: { pill: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", bar: "bg-emerald-500" },
   blue:    { pill: "bg-blue-500/10 text-blue-400 border border-blue-500/20",          bar: "bg-blue-500" },
   orange:  { pill: "bg-amber-500/10 text-amber-400 border border-amber-500/20",       bar: "bg-amber-500" },

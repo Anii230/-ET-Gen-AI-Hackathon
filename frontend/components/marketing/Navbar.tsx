@@ -32,14 +32,14 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-lg"
+            className="flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-lg"
           >
-            <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center">
-              <span className="font-heading font-bold text-[10px] text-white leading-none">ET</span>
+            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
+              <span className="font-heading font-bold text-[10px] text-primary-foreground leading-none">ET</span>
             </div>
             <span className="font-heading font-bold text-[15px] tracking-tight text-[var(--foreground)]">
-              ET <span className="text-indigo-500">AI</span>
-              <span className="text-indigo-500">·</span>
+              ET <span className="text-primary">AI</span>
+              <span className="text-primary">·</span>
             </span>
           </Link>
 
@@ -49,7 +49,7 @@ export function Navbar() {
               <a
                 key={link.label}
                 href={link.href}
-                className="px-3 py-2 rounded-lg text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--background-tertiary)] transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                className="px-3 py-2 rounded-lg text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--background-tertiary)] transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
               >
                 {link.label}
               </a>
@@ -61,7 +61,7 @@ export function Navbar() {
             <ThemeToggle size="sm" />
             <Link
               href="/login"
-              className="hidden sm:flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="hidden sm:flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             >
               Get Started
             </Link>
@@ -99,7 +99,7 @@ export function Navbar() {
               ))}
               <Link
                 href="/login"
-                className="flex items-center justify-center mt-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-all duration-200 ease-out cursor-pointer"
+                className="flex items-center justify-center mt-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 ease-out cursor-pointer"
               >
                 Get Started
               </Link>

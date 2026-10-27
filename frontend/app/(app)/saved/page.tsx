@@ -7,6 +7,7 @@ import { Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoryTag } from "@/components/ui/category-tag";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getArticle, Article } from "@/lib/api";
 import { getBookmarks } from "@/lib/bookmarks";
@@ -35,7 +36,7 @@ export default function SavedPage() {
   }, []);
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 py-6 sm:px-6 sm:py-8">
+    <PageContainer className="py-6 sm:py-8">
       <header className="mb-6 flex items-center gap-3">
         <h1 className="font-heading text-[24px] font-semibold tracking-tight text-foreground sm:text-[28px]">
           Saved
@@ -94,6 +95,6 @@ export default function SavedPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

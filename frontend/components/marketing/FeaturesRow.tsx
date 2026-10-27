@@ -71,8 +71,8 @@ export function FeaturesRow() {
               </div>
 
               {/* Icon */}
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-6">
-                <feature.icon className="w-5 h-5 text-indigo-500" />
+              <div className="w-10 h-10 rounded-xl bg-accent-soft flex items-center justify-center mb-6">
+                <feature.icon className="w-5 h-5 text-primary" />
               </div>
 
               <h3 className="font-heading font-semibold text-xl text-[var(--foreground)] mb-3">

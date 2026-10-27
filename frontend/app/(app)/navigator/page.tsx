@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CategoryTag } from "@/components/ui/category-tag";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getFeed, Article } from "@/lib/api";
 import { cn, formatHeadline, pluralize, stripHtml } from "@/lib/utils";
@@ -86,7 +87,7 @@ export default function NavigatorPage() {
   };
 
   return (
-    <div className="mx-auto min-h-full w-full max-w-[1200px] px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
+    <PageContainer className="min-h-full pb-32 pt-6 sm:pt-8">
       <header className="mb-8">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted">
@@ -171,7 +172,7 @@ export default function NavigatorPage() {
                           className={cn(
                             "flex h-6 w-6 items-center justify-center rounded-full",
                             isSelected
-                              ? "bg-accent text-white"
+                              ? "bg-accent text-primary-foreground"
                               : "border border-border bg-background text-muted-foreground"
                           )}
                         >
@@ -251,6 +252,6 @@ export default function NavigatorPage() {
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </div>
+    </PageContainer>
   );
 }

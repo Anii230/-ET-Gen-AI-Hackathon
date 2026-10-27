@@ -23,6 +23,10 @@ class NewsState(TypedDict):
     sources_used: List[str]
     error: Optional[str]
     briefing_error: Optional[str]
+    briefing_complete: bool
+    briefing_truncated: bool
+    briefing_recovered: bool
+    focus_article_id: Optional[str]
 
 
 def enrichment_node(state: NewsState) -> NewsState:
@@ -44,12 +48,20 @@ def ranking_node(state: NewsState) -> NewsState:
 
 def synthesis_node(state: NewsState) -> NewsState:
     try:
-        briefing, sources = run_synthesis(
+        outcome = run_synthesis(
             state["ranked_articles"],
-            state.get("query", "")
+            state.get("query", ""),
+            state.get("focus_article_id"),
         )
-        return {**state, "briefing": briefing, "sources_used": sources,
-                "briefing_error": None}
+        return {
+            **state,
+            "briefing": outcome.briefing,
+            "sources_used": outcome.sources,
+            "briefing_error": None,
+            "briefing_complete": outcome.complete,
+            "briefing_truncated": outcome.truncated,
+            "briefing_recovered": outcome.recovered,
+        }
     except LLMServiceError as exc:
         # User-facing text stays generic; the real cause is logged by llm.py.
         logger.warning("Briefing synthesis degraded: code=%s", exc.code)
@@ -58,6 +70,9 @@ def synthesis_node(state: NewsState) -> NewsState:
             "briefing": FALLBACK_BRIEFING,
             "sources_used": [],
             "briefing_error": exc.code,
+            "briefing_complete": False,
+            "briefing_truncated": False,
+            "briefing_recovered": False,
         }
     except Exception:
         logger.exception("Briefing synthesis failed unexpectedly")
@@ -66,6 +81,9 @@ def synthesis_node(state: NewsState) -> NewsState:
             "briefing": FALLBACK_BRIEFING,
             "sources_used": [],
             "briefing_error": "llm_error",
+            "briefing_complete": False,
+            "briefing_truncated": False,
+            "briefing_recovered": False,
         }
 
 def build_pipeline() -> StateGraph:

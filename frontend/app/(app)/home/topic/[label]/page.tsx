@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { CategoryTag } from "@/components/ui/category-tag";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { Markdown } from "@/components/markdown/Markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getTopicBriefing,
@@ -146,7 +148,7 @@ export default function TopicPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-[900px] px-4 py-8 sm:px-6">
+      <PageContainer width="reading" className="py-8">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="mt-6 h-8 w-2/3" />
         <Skeleton className="mt-2 h-3 w-56" />
@@ -161,13 +163,13 @@ export default function TopicPage() {
             <Skeleton key={index} className="h-20 w-full rounded-lg" />
           ))}
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (error || !briefing) {
     return (
-      <div className="mx-auto w-full max-w-[900px] px-4 py-16 sm:px-6">
+      <PageContainer width="reading" className="py-16">
         <ErrorState
           title="Topic not available"
           message={
@@ -177,7 +179,7 @@ export default function TopicPage() {
           onRetry={() => router.push("/home")}
           retryLabel="Back to the feed"
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -185,7 +187,10 @@ export default function TopicPage() {
   const angle = briefing.angles[activeAngle];
 
   return (
-    <div className="relative mx-auto w-full max-w-[1000px] px-4 pb-20 pt-6 sm:px-6 sm:pt-8 lg:pr-[460px]">
+    <PageContainer
+      width="reading"
+      className="relative pb-20 pt-6 sm:pt-8 lg:pr-[460px]"
+    >
       <button
         type="button"
         onClick={() => router.back()}
@@ -260,9 +265,9 @@ export default function TopicPage() {
               exit={shouldReduceMotion ? {} : { opacity: 0, y: -6 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              <p className="whitespace-pre-line text-[14.5px] leading-[1.75] text-foreground/85">
-                {angle.content}
-              </p>
+              <div className="text-[14.5px] leading-[1.75] text-foreground/85">
+                <Markdown content={angle.content} />
+              </div>
               {angle.article_count > 0 ? (
                 <p className="mt-4 text-[11px] text-muted-foreground">
                   {angle.article_count}{" "}
@@ -278,9 +283,9 @@ export default function TopicPage() {
               <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 What to watch
               </h3>
-              <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-                {briefing.what_to_watch}
-              </p>
+              <div className="text-[13.5px] leading-relaxed text-muted-foreground">
+                <Markdown content={briefing.what_to_watch} />
+              </div>
             </div>
           ) : null}
         </section>
@@ -411,11 +416,17 @@ export default function TopicPage() {
                     className={cn(
                       "max-w-[85%] rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed",
                       isUser
-                        ? "rounded-br-sm bg-accent text-white"
+                        ? "rounded-br-sm bg-accent text-primary-foreground"
                         : "rounded-bl-sm border border-border bg-muted/50 text-foreground"
                     )}
                   >
-                    {message.content}
+                    {isUser ? (
+                      <p className="whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                    ) : (
+                      <Markdown content={message.content} />
+                    )}
                   </div>
                 </div>
               );
@@ -468,6 +479,6 @@ export default function TopicPage() {
           </form>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

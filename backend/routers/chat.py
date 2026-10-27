@@ -63,6 +63,6 @@ Rules:
             {"role": "user", "content": payload.message},
         ],
         temperature=0.7,
-        max_tokens=400,
+        max_tokens=800,
     )
     return ChatOut(response=response_text, sources=[])

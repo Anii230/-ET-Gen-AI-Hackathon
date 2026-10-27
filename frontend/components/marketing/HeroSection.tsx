@@ -6,7 +6,7 @@ import { ArrowRight, Brain, TrendingUp, Bookmark } from "lucide-react";
 import { categoryStyles } from "@/lib/mock-data";
 
 const PREVIEW_CARDS = [
-  { category: "AI",      categoryColor: "indigo",  title: "GPT-5 surpasses all reasoning benchmarks, reshapes research norms", source: "The Verge", timestamp: "2h ago", readTime: 6 },
+  { category: "AI",      categoryColor: "accent",  title: "GPT-5 surpasses all reasoning benchmarks, reshapes research norms", source: "The Verge", timestamp: "2h ago", readTime: 6 },
   { category: "Economy", categoryColor: "emerald", title: "RBI signals sustained rate pause as inflation eases to 4.1%",          source: "Mint",      timestamp: "4h ago", readTime: 4 },
   { category: "Tech",    categoryColor: "blue",    title: "Jio unveils ₹40,000 Cr 6G roadmap with Nokia partnership",            source: "Inc42",     timestamp: "6h ago", readTime: 5 },
 ];
@@ -27,8 +27,8 @@ function BentoPreview() {
       {/* Mini bento */}
       <div className="p-4 grid grid-cols-5 grid-rows-2 gap-2.5 min-h-[260px]">
         {/* Hero */}
-        <div className="col-span-3 row-span-2 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-indigo-500/40 transition-all duration-200 border-t-2 border-t-indigo-500 p-4 flex flex-col justify-between cursor-pointer">
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 w-fit">
+        <div className="col-span-3 row-span-2 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-accent/40 transition-all duration-200 border-t-2 border-t-accent p-4 flex flex-col justify-between cursor-pointer">
+          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-accent-soft text-accent border border-accent/20 w-fit">
             AI
           </span>
           <div>
@@ -44,7 +44,7 @@ function BentoPreview() {
           return (
             <div
               key={i}
-              className="col-span-2 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-indigo-500/30 p-3 flex flex-col justify-between cursor-pointer transition-all duration-200"
+              className="col-span-2 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-accent/30 p-3 flex flex-col justify-between cursor-pointer transition-all duration-200"
             >
               <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full w-fit ${style.pill}`}>
                 {card.category}
@@ -77,7 +77,7 @@ export function HeroSection() {
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(ellipse 60% 50% at 50% -10%, rgba(99,102,241,0.12), transparent 65%)",
+          background: "radial-gradient(ellipse 60% 50% at 50% -10%, rgba(14,116,144,0.12), transparent 65%)",
         }}
       />
 
@@ -90,7 +90,7 @@ export function HeroSection() {
           className="mb-7 flex justify-center"
         >
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--background-secondary)] text-xs font-medium text-[var(--foreground-secondary)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             ET AI Hackathon 2026 · Track 8
           </span>
         </motion.div>
@@ -104,7 +104,7 @@ export function HeroSection() {
         >
           News that
           <br />
-          <span className="text-indigo-500">knows you.</span>
+          <span className="text-primary">knows you.</span>
         </motion.h1>
 
         {/* Sub */}
@@ -126,14 +126,14 @@ export function HeroSection() {
         >
           <Link
             href="/login"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 shadow-lg shadow-indigo-500/20"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 shadow-lg shadow-accent/20"
           >
             Start Reading
             <ArrowRight className="w-4 h-4" />
           </Link>
           <a
             href="#how-it-works"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--foreground-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--background-tertiary)] hover:border-[var(--border-hover)] transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--foreground-secondary)] hover:text-[var(--foreground)] hover:bg-[var(--background-tertiary)] hover:border-[var(--border-hover)] transition-all duration-200 ease-out cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             See how it works
           </a>
@@ -162,7 +162,7 @@ export function HeroSection() {
             { icon: Bookmark,  label: "Saved reads",        value: "50k+" },
           ].map((stat) => (
             <div key={stat.label} className="flex items-center gap-2 text-[var(--foreground-secondary)]">
-              <stat.icon className="w-4 h-4 text-indigo-500" />
+              <stat.icon className="w-4 h-4 text-primary" />
               <span className="text-sm">
                 <span className="font-semibold text-[var(--foreground)]">{stat.value}</span>{" "}
                 {stat.label}

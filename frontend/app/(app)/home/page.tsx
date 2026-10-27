@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { FeedToggle } from "@/components/feed/FeedToggle";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { BentoMonochrome } from "@/components/ui/bento-monochrome";
 import { Button } from "@/components/ui/button";
 import { CategoryTag } from "@/components/ui/category-tag";
@@ -189,7 +190,7 @@ export default function AppHomePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+    <PageContainer className="py-5 sm:py-7">
       <header className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -321,6 +322,6 @@ export default function AppHomePage() {
           </>
         )}
       </section>
-    </div>
+    </PageContainer>
   );
 }

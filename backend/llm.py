@@ -9,6 +9,7 @@ API key, prompt text, article content or user messages.
 """
 
 import logging
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import groq
@@ -38,6 +39,27 @@ class LLMServiceError(Exception):
         self.status_code = status_code
         self.user_message = user_message
         self.code = code
+
+
+@dataclass(frozen=True)
+class CompletionResult:
+    """Assistant text plus the metadata needed to detect truncation.
+
+    ``finish_reason == "length"`` means the provider stopped at the output-token
+    ceiling. Callers that promise a fixed structure (briefings) must treat that
+    as incomplete rather than as a finished response.
+    """
+
+    content: str
+    finish_reason: Optional[str] = None
+    model: str = ""
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    total_tokens: Optional[int] = None
+
+    @property
+    def truncated(self) -> bool:
+        return self.finish_reason == "length"
 
 
 _client_instance: Optional[Groq] = None
@@ -116,6 +138,25 @@ def chat_completion(
 ) -> str:
     """Run a chat completion and return the assistant's text.
 
+    Kept as the small, stable API used by chat and story arcs. Briefings use
+    :func:`chat_completion_result` so they can inspect ``finish_reason``.
+    """
+    return chat_completion_result(
+        messages,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    ).content
+
+
+def chat_completion_result(
+    messages: List[Dict[str, str]],
+    model: Optional[str] = None,
+    temperature: float = 0.6,
+    max_tokens: int = 400,
+) -> CompletionResult:
+    """Run a chat completion and return text plus finish reason and usage.
+
     Raises :class:`LLMServiceError` for any provider or configuration
     failure; raw provider errors never leave this function.
     """
@@ -149,13 +190,32 @@ def chat_completion(
         )
         raise mapped from exc
 
-    content = (completion.choices[0].message.content or "").strip()
+    choice = completion.choices[0]
+    finish_reason = getattr(choice, "finish_reason", None)
+    content = (choice.message.content or "").strip()
+    usage = getattr(completion, "usage", None)
+
     if not content:
         logger.warning(
             "Groq returned empty content: model=%s finish_reason=%s",
             selected_model,
-            completion.choices[0].finish_reason,
+            finish_reason,
         )
         raise LLMServiceError(502, MSG_EMPTY, "llm_empty_response")
 
-    return content
+    result = CompletionResult(
+        content=content,
+        finish_reason=finish_reason,
+        model=selected_model,
+        prompt_tokens=getattr(usage, "prompt_tokens", None),
+        completion_tokens=getattr(usage, "completion_tokens", None),
+        total_tokens=getattr(usage, "total_tokens", None),
+    )
+    logger.info(
+        "Groq completion: model=%s finish_reason=%s prompt_tokens=%s completion_tokens=%s",
+        result.model,
+        result.finish_reason,
+        result.prompt_tokens,
+        result.completion_tokens,
+    )
+    return result
