@@ -1,5 +1,65 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+/** Error carrying a user-safe message from the backend. */
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status = 0, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+const DEFAULT_MESSAGE = "Something went wrong. Please try again.";
+const NETWORK_MESSAGE =
+  "Can't reach the news service. Check that the backend is running and try again.";
+
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  fallback = DEFAULT_MESSAGE
+): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, init);
+  } catch {
+    // fetch rejects on connection refused / CORS failure, which browsers
+    // report as a bare TypeError ("NetworkError"). Translate it.
+    throw new ApiError(NETWORK_MESSAGE, 0, "network_error");
+  }
+
+  if (!res.ok) {
+    let message = fallback;
+    let code: string | undefined;
+    try {
+      const body = await res.json();
+      if (typeof body?.detail === "string" && body.detail.trim()) {
+        message = body.detail;
+      }
+      if (typeof body?.code === "string") {
+        code = body.code;
+      }
+    } catch {
+      // Non-JSON error body; keep the fallback message.
+    }
+    throw new ApiError(message, res.status, code);
+  }
+
+  return res.json() as Promise<T>;
+}
+
+/** Fire-and-forget request for non-critical signals. Never throws. */
+async function requestVoid(path: string, init: RequestInit): Promise<void> {
+  try {
+    await fetch(`${BASE}${path}`, init);
+  } catch {
+    // Attention/preference signals are best-effort.
+  }
+}
+
 export type Article = {
   id: string;
   headline: string;
@@ -20,29 +80,29 @@ export type BriefingResponse = {
   sources_used: string[];
   ranked_count: number;
   pipeline_steps: string[];
+  degraded?: boolean;
 };
 
 export async function getFeed(): Promise<Article[]> {
-  const res = await fetch(`${BASE}/feed/`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch feed");
-  return res.json();
+  return request<Article[]>("/feed/", { cache: "no-store" }, "Failed to fetch feed");
 }
 
 export async function getPersonalisedFeed(
   userId: string
 ): Promise<Article[]> {
-  const res = await fetch(
-    `${BASE}/feed/personalised?user_id=${userId}`,
-    { cache: "no-store" }
+  return request<Article[]>(
+    `/feed/personalised?user_id=${encodeURIComponent(userId)}`,
+    { cache: "no-store" },
+    "Failed to fetch personalised feed"
   );
-  if (!res.ok) throw new Error("Failed to fetch personalised feed");
-  return res.json();
 }
 
 export async function getArticle(id: string): Promise<Article> {
-  const res = await fetch(`${BASE}/articles/${id}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Article not found");
-  return res.json();
+  return request<Article>(
+    `/articles/${encodeURIComponent(id)}`,
+    { cache: "no-store" },
+    "Article not found"
+  );
 }
 
 export async function getBriefing(
@@ -50,17 +110,19 @@ export async function getBriefing(
   query?: string,
   articleIds?: string[]
 ): Promise<BriefingResponse> {
-  const res = await fetch(`${BASE}/briefing/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: userId,
-      query: query || null,
-      article_ids: articleIds || null,
-    }),
-  });
-  if (!res.ok) throw new Error("Briefing failed");
-  return res.json();
+  return request<BriefingResponse>(
+    "/briefing/",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        query: query || null,
+        article_ids: articleIds || null,
+      }),
+    },
+    "The briefing is unavailable right now."
+  );
 }
 
 export async function sendChatMessage(
@@ -68,17 +130,19 @@ export async function sendChatMessage(
   message: string,
   articleId?: string
 ): Promise<{ response: string; sources: Article[] }> {
-  const res = await fetch(`${BASE}/chat/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: userId,
-      message,
-      article_id: articleId || null,
-    }),
-  });
-  if (!res.ok) throw new Error("Chat failed");
-  return res.json();
+  return request<{ response: string; sources: Article[] }>(
+    "/chat/",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        message,
+        article_id: articleId || null,
+      }),
+    },
+    "The assistant is unavailable right now."
+  );
 }
 
 export async function recordAttention(
@@ -88,7 +152,7 @@ export async function recordAttention(
   scrollDepth: number,
   clicked: boolean
 ): Promise<void> {
-  await fetch(`${BASE}/attention/`, {
+  await requestVoid("/attention/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -107,7 +171,7 @@ export async function savePreferences(
   sources: string[],
   depth: string
 ): Promise<void> {
-  await fetch(`${BASE}/users/preferences`, {
+  await requestVoid("/users/preferences", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: userId, topics, sources, depth }),
@@ -150,29 +214,27 @@ export async function getTopicBriefing(
   topic: string,
   userId: string = "demo_user"
 ): Promise<TopicBriefing> {
-  const res = await fetch(`${BASE}/briefing/topic`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ topic, user_id: userId }),
-  });
-  if (!res.ok) throw new Error("Topic briefing failed");
-  return res.json();
+  return request<TopicBriefing>(
+    "/briefing/topic",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic, user_id: userId }),
+    },
+    "The topic briefing is unavailable right now."
+  );
 }
 
 export async function getTrendingTopics(): Promise<{
   topics: Array<{label: string; type: string; count: number}>
 }> {
-  const res = await fetch(`${BASE}/feed/trending-topics`, {
-    cache: "no-store"
-  });
-  if (!res.ok) throw new Error("Failed to fetch topics");
-  return res.json();
+  return request<{ topics: Array<{label: string; type: string; count: number}> }>(
+    "/feed/trending-topics",
+    { cache: "no-store" },
+    "Failed to fetch topics"
+  );
 }
 
 export async function getStoryArcs(): Promise<StoryArc[]> {
-  const res = await fetch(`${BASE}/story-arcs/`, {
-    cache: "no-store"
-  });
-  if (!res.ok) throw new Error("Failed to fetch story arcs");
-  return res.json();
+  return request<StoryArc[]>("/story-arcs/", { cache: "no-store" }, "Failed to fetch story arcs");
 }

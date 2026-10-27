@@ -6,6 +6,7 @@ import {
   getArticle, 
   Article, 
   TopicBriefing, 
+  ApiError,
   sendChatMessage 
 } from "@/lib/api";
 import { 
@@ -88,10 +89,12 @@ export default function TopicPage() {
         ...prev,
         { role: "assistant", content: data.response }
       ]);
-    } catch {
+    } catch (e) {
       setChatMessages(prev => [
         ...prev,
-        { role: "assistant", content: "Sorry, I couldn't process that request." }
+        { role: "assistant", content: e instanceof ApiError
+            ? e.message
+            : "Sorry, I couldn't process that request." }
       ]);
     } finally {
       setChatLoading(false);

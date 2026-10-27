@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Article, UserProfile
@@ -6,12 +6,12 @@ from agents.graph import pipeline
 from pydantic import BaseModel
 from typing import Optional, List
 import json
+import logging
 from collections import Counter
-import os
-from groq import Groq
+from llm import chat_completion
 from fetcher import search_external_articles
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+logger = logging.getLogger("et_news.briefing")
 
 router = APIRouter()
 
@@ -25,6 +25,7 @@ class BriefingResponse(BaseModel):
     sources_used: List[str]
     ranked_count: int
     pipeline_steps: List[str] = ["enrichment", "ranking", "synthesis"]
+    degraded: bool = False
 
 @router.post("/", response_model=BriefingResponse)
 def generate_briefing(
@@ -92,12 +93,15 @@ def generate_briefing(
         "briefing": None,
         "sources_used": [],
         "error": None,
+        "briefing_error": None,
     })
     
+    briefing_error = result.get("briefing_error")
     return BriefingResponse(
         briefing=result["briefing"],
         sources_used=result["sources_used"],
         ranked_count=len(result["ranked_articles"]),
+        degraded=bool(briefing_error),
     )
 
 class TopicBriefingRequest(BaseModel):
@@ -214,8 +218,7 @@ Rules:
 - Be specific, not generic
 - If an angle has no relevant data, say so briefly"""
 
-    completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+    raw = chat_completion(
         messages=[
             {
                 "role": "system",
@@ -227,18 +230,19 @@ Rules:
         max_tokens=600,
     )
     
-    raw = completion.choices[0].message.content.strip()
     raw = raw.replace("```json", "").replace("```", "").strip()
     
     try:
         parsed = json.loads(raw)
-    except Exception:
-        parsed = {
-            "macro_impact": "Analysis in progress.",
-            "market_reaction": "Market data being compiled.",
-            "expert_view": "Expert commentary being gathered.",
-            "what_to_watch": "Stay tuned for updates."
-        }
+    except Exception as exc:
+        logger.warning(
+            "Topic briefing returned unparseable JSON (topic_length=%d)",
+            len(request.topic),
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="The AI service returned an unreadable briefing. Please try again.",
+        ) from exc
     
     angles = [
         AngleBriefing(

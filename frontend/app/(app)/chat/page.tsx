@@ -6,7 +6,7 @@ import { SendHorizonal, TrendingUp, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { mockArticles, categoryStyles } from "@/lib/mock-data";
-import { sendChatMessage, getBriefing, getFeed, Article } from "@/lib/api";
+import { sendChatMessage, getBriefing, getFeed, ApiError, Article } from "@/lib/api";
 
 type Message = {
   role: "user" | "assistant";
@@ -197,7 +197,9 @@ export default function ChatPage() {
     } catch (e) {
       setMessages([{
         role: "assistant",
-        content: "Sorry, I couldn't synthesize your news selection. Please try again."
+        content: e instanceof ApiError
+          ? e.message
+          : "Sorry, I couldn't synthesize your news selection. Please try again."
       }]);
     } finally {
       setLoading(false);
@@ -228,7 +230,9 @@ export default function ChatPage() {
     } catch (e) {
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "Sorry, I had trouble connecting. Please try again."
+        content: e instanceof ApiError
+          ? e.message
+          : "Sorry, I had trouble connecting. Please try again."
       }]);
     } finally {
       setLoading(false);

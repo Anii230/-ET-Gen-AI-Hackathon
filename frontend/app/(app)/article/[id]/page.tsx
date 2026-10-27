@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getArticle, getBriefing, sendChatMessage, Article } from "@/lib/api";
+import { getArticle, getBriefing, sendChatMessage, ApiError, Article } from "@/lib/api";
 import { ArrowLeft, Clock, Bookmark, MessageSquare, X, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { isBookmarked as checkIsBookmarked, toggleBookmark } from "@/lib/bookmarks";
@@ -13,6 +13,7 @@ export default function ArticlePage() {
   
   const [article, setArticle] = useState<Article | null>(null);
   const [briefing, setBriefing] = useState<string | null>(null);
+  const [briefingDegraded, setBriefingDegraded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   
@@ -32,6 +33,7 @@ export default function ArticlePage() {
       // Fetch AI briefing after article loads
       getBriefing("demo_user", undefined, [id]).then(bData => {
         setBriefing(bData.briefing);
+        setBriefingDegraded(Boolean(bData.degraded));
       }).catch(() => {});
     }).catch(() => {
       setLoading(false);
@@ -55,8 +57,11 @@ export default function ArticlePage() {
     try {
       const data = await sendChatMessage("demo_user", msg, article.id);
       setChatMessages(prev => [...prev, { role: "assistant", content: data.response }]);
-    } catch {
-      setChatMessages(prev => [...prev, { role: "assistant", content: "I'm having trouble connecting. Please try again." }]);
+    } catch (e) {
+      const message = e instanceof ApiError
+        ? e.message
+        : "The assistant is unavailable right now. Please try again.";
+      setChatMessages(prev => [...prev, { role: "assistant", content: message }]);
     } finally {
       setChatLoading(false);
     }
@@ -147,7 +152,9 @@ export default function ArticlePage() {
               AI Intelligence Briefing
             </div>
             <div className="text-[16px] leading-[1.7] text-[var(--foreground)] opacity-95 whitespace-pre-wrap">
-              {renderMarkdown(briefing)}
+              {briefingDegraded
+                ? "AI briefing unavailable right now. Please try again in a few minutes."
+                : renderMarkdown(briefing)}
             </div>
             <button
               onClick={() => setChatOpen(true)}

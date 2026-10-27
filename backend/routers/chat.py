@@ -3,15 +3,10 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Article
 from schemas import ChatIn, ChatOut
-from groq import Groq
-import os
+from llm import chat_completion
 import json
-from dotenv import load_dotenv
-
-load_dotenv()
 
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 @router.post("/", response_model=ChatOut)
 def chat(payload: ChatIn, db: Session = Depends(get_db)):
@@ -62,8 +57,7 @@ Rules:
 - If asked to explain an article, use the article context above
 - Never say "there's no article provided" if article context exists"""
 
-    completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+    response_text = chat_completion(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": payload.message},
@@ -71,5 +65,4 @@ Rules:
         temperature=0.7,
         max_tokens=400,
     )
-    response_text = completion.choices[0].message.content
     return ChatOut(response=response_text, sources=[])

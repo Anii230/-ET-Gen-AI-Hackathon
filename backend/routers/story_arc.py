@@ -2,18 +2,18 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Article
-from groq import Groq
-import os
 import json
+import logging
 from collections import defaultdict, Counter
 from datetime import datetime
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import List, Optional
+from config import groq_model_small
+from llm import LLMServiceError, chat_completion
 
-load_dotenv()
+logger = logging.getLogger("et_news.story_arc")
+
 router = APIRouter()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class TimelineEvent(BaseModel):
     date: str
@@ -131,35 +131,42 @@ def get_story_arcs(db: Session = Depends(get_db)):
             for a in arts[:8]
         ])
         
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a financial news analyst. Return only valid JSON, no markdown."
-                },
-                {
-                    "role": "user",
-                    "content": f"""Based on these articles about "{entity}":
+        fallback_content = {
+            "description": f"Ongoing story tracking {entity} across {len(arts)} articles.",
+            "what_to_watch": f"Monitor {entity} for further developments.",
+        }
+
+        try:
+            raw = chat_completion(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a financial news analyst. Return only valid JSON, no markdown."
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""Based on these articles about "{entity}":
 {headlines_text}
 
 Return JSON with exactly:
 {{"description": "2 sentence story summary", "what_to_watch": "1 sentence prediction"}}"""
-                }
-            ],
-            temperature=0.4,
-            max_tokens=150,
-        )
-        
-        raw = completion.choices[0].message.content.strip()
-        raw = raw.replace("```json", "").replace("```", "").strip()
-        try:
+                    }
+                ],
+                model=groq_model_small(),
+                temperature=0.4,
+                max_tokens=200,
+            )
+
+            raw = raw.replace("```json", "").replace("```", "").strip()
             ai_content = json.loads(raw)
+        except LLMServiceError as exc:
+            # Degrade this one arc to its data-derived summary rather than
+            # failing the whole endpoint. The cause is logged by llm.py.
+            logger.warning("Story arc AI summary unavailable: code=%s", exc.code)
+            ai_content = fallback_content
         except Exception:
-            ai_content = {
-                "description": f"Ongoing story tracking {entity} across {len(arts)} articles.",
-                "what_to_watch": f"Monitor {entity} for further developments."
-            }
+            logger.warning("Story arc AI summary was not valid JSON")
+            ai_content = fallback_content
         
         arcs.append(StoryArc(
             id=entity.lower().replace(" ", "-"),

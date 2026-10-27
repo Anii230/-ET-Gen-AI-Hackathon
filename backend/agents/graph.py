@@ -1,8 +1,17 @@
 from typing import TypedDict, List, Optional
+import logging
 from langgraph.graph import StateGraph, END
 from agents.enrichment_agent import run_enrichment
 from agents.ranking_agent import run_ranking
 from agents.synthesis_agent import run_synthesis
+from llm import LLMServiceError
+
+logger = logging.getLogger("et_news.pipeline")
+
+FALLBACK_BRIEFING = (
+    "AI briefing is temporarily unavailable right now. "
+    "Your ranked articles are still shown below — please try again in a few minutes."
+)
 
 class NewsState(TypedDict):
     articles: List[dict]
@@ -13,6 +22,8 @@ class NewsState(TypedDict):
     briefing: Optional[str]
     sources_used: List[str]
     error: Optional[str]
+    briefing_error: Optional[str]
+
 
 def enrichment_node(state: NewsState) -> NewsState:
     try:
@@ -37,13 +48,24 @@ def synthesis_node(state: NewsState) -> NewsState:
             state["ranked_articles"],
             state.get("query", "")
         )
-        return {**state, "briefing": briefing, "sources_used": sources}
-    except Exception as e:
+        return {**state, "briefing": briefing, "sources_used": sources,
+                "briefing_error": None}
+    except LLMServiceError as exc:
+        # User-facing text stays generic; the real cause is logged by llm.py.
+        logger.warning("Briefing synthesis degraded: code=%s", exc.code)
         return {
-            **state, 
-            "error": str(e), 
-            "briefing": f"Briefing temporarily unavailable. The pipeline processed {len(state.get('ranked_articles', []))} articles.", 
-            "sources_used": []
+            **state,
+            "briefing": FALLBACK_BRIEFING,
+            "sources_used": [],
+            "briefing_error": exc.code,
+        }
+    except Exception:
+        logger.exception("Briefing synthesis failed unexpectedly")
+        return {
+            **state,
+            "briefing": FALLBACK_BRIEFING,
+            "sources_used": [],
+            "briefing_error": "llm_error",
         }
 
 def build_pipeline() -> StateGraph:

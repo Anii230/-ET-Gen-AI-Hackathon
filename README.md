@@ -22,7 +22,7 @@ The platform runs a three-step autonomous agent pipeline — Enrichment → Rank
 |---|---|
 | Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, Zustand, TanStack Query, shadcn/ui, Supabase SSR |
 | Backend | FastAPI, LangGraph, Groq SDK, SQLAlchemy, feedparser, uvicorn |
-| NLP / AI | spaCy (NER, local), VADER Sentiment (local), Groq LLM (llama-3.1-8b + llama-3.3-70b) |
+| NLP / AI | spaCy (NER, local), VADER Sentiment (local), Groq LLM (`openai/gpt-oss-120b` + `openai/gpt-oss-20b`) |
 | Data | SQLite, RSS feeds (9 sources), NewsAPI (fallback) |
 
 ---
@@ -49,9 +49,15 @@ If any node fails, enriched articles pass forward and the pipeline continues —
 
 | Task | Model |
 |---|---|
-| Article enrichment fallback, story arc descriptions | llama-3.1-8b-instant |
-| Briefing synthesis, chat, News Navigator | llama-3.3-70b-versatile |
+| Story arc descriptions, short structured summaries | `openai/gpt-oss-20b` |
+| Briefing synthesis, chat, News Navigator | `openai/gpt-oss-120b` |
 | NER, sentiment scoring | Local (spaCy + VADER) — no API calls |
+
+Model IDs are configurable via the `GROQ_MODEL` and `GROQ_MODEL_SMALL`
+environment variables (see `backend/config.py`). Both defaults above were
+verified against Groq's `/openai/v1/models` endpoint. Reasoning effort for
+`gpt-oss` models defaults to `low` and can be overridden with
+`GROQ_REASONING_EFFORT`.
 
 ---
 
@@ -79,7 +85,7 @@ Supabase handles email/password and Google OAuth. A 3-step onboarding modal coll
 ### Prerequisites
 
 - Node.js 18+
-- Python 3.11+ (avoid 3.14 — LangGraph has Pydantic v1 compatibility issues)
+- Python 3.11+ (verified on 3.14)
 - [Groq API key](https://console.groq.com) (free tier: 14,400 requests/day)
 - [NewsAPI key](https://newsapi.org) (free)
 - [Supabase project](https://supabase.com) (free)
@@ -102,6 +108,12 @@ python -m spacy download en_core_web_sm
 # GROQ_API_KEY=xxx
 # NEWS_API_KEY=xxx
 # DATABASE_URL=sqlite:///./et_news.db
+#
+# Optional overrides:
+# GROQ_MODEL=openai/gpt-oss-120b
+# GROQ_MODEL_SMALL=openai/gpt-oss-20b
+# GROQ_REASONING_EFFORT=low
+# CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 # Start server
 cd backend && uvicorn main:app --reload --port 8000

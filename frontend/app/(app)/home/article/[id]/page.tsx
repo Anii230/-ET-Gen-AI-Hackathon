@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getArticle, getBriefing, Article, sendChatMessage } from "@/lib/api";
+import { getArticle, getBriefing, ApiError, Article, sendChatMessage } from "@/lib/api";
 import { ArrowLeft, Clock, Bookmark, X, ExternalLink, Minimize2, Send, MessageSquare } from "lucide-react";
 import { getBookmarks, toggleBookmark, isBookmarked } from "@/lib/bookmarks";
 
@@ -14,6 +14,7 @@ export default function ArticlePage() {
   const [bookmarked, setBookmarked] = useState(false);
   const [briefing, setBriefing] = useState<string>("");
   const [briefingLoading, setBriefingLoading] = useState(false);
+  const [briefingDegraded, setBriefingDegraded] = useState(false);
 
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{role: string, content: string}>>([]);
@@ -36,8 +37,14 @@ export default function ArticlePage() {
     if (!article) return;
     setBriefingLoading(true);
     getBriefing("demo_user", undefined, [article.id])
-      .then(data => setBriefing(data.briefing))
-      .catch(() => setBriefing(""))
+      .then(data => {
+        setBriefing(data.briefing);
+        setBriefingDegraded(Boolean(data.degraded));
+      })
+      .catch(() => {
+        setBriefing("");
+        setBriefingDegraded(false);
+      })
       .finally(() => setBriefingLoading(false));
   }, [article]);
 
@@ -73,10 +80,13 @@ export default function ArticlePage() {
         ...prev,
         { role: "assistant", content: data.response }
       ]);
-    } catch {
+    } catch (e) {
+      const message = e instanceof ApiError
+        ? e.message
+        : "The assistant is unavailable right now. Please try again.";
       setChatMessages(prev => [
         ...prev,
-        { role: "assistant", content: "Sorry, something went wrong." }
+        { role: "assistant", content: message }
       ]);
     } finally {
       setChatLoading(false);
@@ -172,9 +182,15 @@ export default function ArticlePage() {
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" style={{animationDelay: '300ms'}} />
             </div>
           ) : briefing ? (
-            <p className="text-sm leading-relaxed text-foreground/80 whitespace-pre-line">
-              {renderMarkdown(briefing)}
-            </p>
+            briefingDegraded ? (
+              <p className="text-xs text-muted-foreground">
+                AI briefing unavailable right now. Please try again in a few minutes.
+              </p>
+            ) : (
+              <p className="text-sm leading-relaxed text-foreground/80 whitespace-pre-line">
+                {renderMarkdown(briefing)}
+              </p>
+            )
           ) : null}
         </div>
 
