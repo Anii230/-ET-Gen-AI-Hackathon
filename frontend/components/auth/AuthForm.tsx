@@ -195,8 +195,8 @@ export function AuthForm() {
           </h1>
           <p className="text-sm text-muted-foreground">
             {mode === "login"
-              ? "Sign in to your personalised news feed"
-              : "Start your AI-powered news journey"}
+              ? "Sign in to your NEXUS feed"
+              : "Start exploring news with NEXUS"}
           </p>
         </div>
 

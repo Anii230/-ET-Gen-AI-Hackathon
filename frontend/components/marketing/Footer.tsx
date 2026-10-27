@@ -1,34 +1,33 @@
 import Link from "next/link";
-import { Zap } from "lucide-react";
+
+import { NexusWordmark } from "@/components/brand/NexusWordmark";
+import { BRAND } from "@/lib/brand";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border py-10 px-4">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Logo + tagline */}
-        <div className="flex flex-col items-center sm:items-start gap-1">
+    <footer className="border-t border-border px-4 py-10">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 sm:flex-row sm:items-start">
+        <div className="flex flex-col items-center gap-2 sm:items-start">
           <Link
             href="/"
-            className="flex items-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
+            aria-label="NEXUS home"
+            className="flex items-center gap-2 rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
-              <Zap className="w-3.5 h-3.5 text-primary-foreground" fill="currentColor" />
-            </div>
-            <span className="font-heading font-bold text-base tracking-tight">
-              ET <span className="text-primary">AI</span>
-            </span>
+            <NexusWordmark size="md" />
           </Link>
-          <p className="text-xs text-muted-foreground">
-            News that knows you.
-          </p>
+          <p className="text-xs text-muted-foreground">{BRAND.fullName}</p>
+          <p className="text-xs text-muted-foreground">{BRAND.tagline}</p>
         </div>
 
-        {/* Hackathon attribution */}
-        <p className="text-xs text-muted-foreground text-center sm:text-right">
-          Built for{" "}
-          <span className="text-foreground font-medium">ET AI Hackathon 2026</span>
-          {" "}· Track 8 — AI-Native News
-        </p>
+        <div className="flex flex-col items-center gap-1.5 text-center sm:items-end sm:text-right">
+          <p className="text-xs font-medium text-foreground">{BRAND.descriptor}</p>
+          <p className="text-xs text-muted-foreground">
+            Built for Avataar.ai × Economic Times Hackathon 2026
+          </p>
+          <p className="text-[11px] text-muted-foreground/80">
+            Track 8 — AI-Native News
+          </p>
+        </div>
       </div>
     </footer>
   );

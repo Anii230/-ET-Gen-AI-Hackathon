@@ -1,7 +1,9 @@
 import { Quote } from "lucide-react";
 import Link from "next/link";
 
+import { NexusWordmark } from "@/components/brand/NexusWordmark";
 import { CategoryTag } from "@/components/ui/category-tag";
+import { BRAND } from "@/lib/brand";
 
 const miniCards = [
   {
@@ -24,16 +26,10 @@ export function AuthDecorativePanel() {
       <div className="relative z-10 flex h-full flex-col p-10">
         <Link
           href="/"
-          className="flex w-fit items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="NEXUS home"
+          className="flex w-fit items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
-            <span className="font-heading text-[10px] font-bold leading-none text-primary-foreground">
-              ET
-            </span>
-          </span>
-          <span className="font-heading text-[15px] font-semibold tracking-tight text-foreground">
-            ET AI
-          </span>
+          <NexusWordmark size="md" />
         </Link>
 
         <div className="mt-auto mb-10 max-w-[320px]">
@@ -42,10 +38,10 @@ export function AuthDecorativePanel() {
             aria-hidden
           />
           <p className="font-heading text-[20px] font-medium italic leading-snug text-foreground">
-            Intelligence, delivered personally.
+            {BRAND.tagline}
           </p>
           <p className="mt-3 font-mono text-[11px] text-muted-foreground">
-            ET AI · AI-Native News
+            {BRAND.fullName}
           </p>
         </div>
 

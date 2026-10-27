@@ -83,7 +83,7 @@ def fetch_rss_articles() -> list:
             response = requests.get(
                 feed_config["url"],
                 timeout=8,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; ET-AI-News/1.0)"},
+                headers={"User-Agent": "Mozilla/5.0 (compatible; NEXUS-News/1.0)"},
             )
             if response.status_code >= 400:
                 print(

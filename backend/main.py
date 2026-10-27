@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="ET AI News API", lifespan=lifespan)
+app = FastAPI(title="NEXUS News Intelligence API", lifespan=lifespan)
 
 # Added first so CORSMiddleware wraps it and can add headers to its responses.
 app.add_middleware(UnhandledErrorMiddleware)

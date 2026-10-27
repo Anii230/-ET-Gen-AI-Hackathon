@@ -4,6 +4,8 @@ import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { cn } from "@/lib/utils";
+import { BRAND } from "@/lib/brand";
+import { NexusWordmark } from "@/components/brand/NexusWordmark";
 import { Newspaper, Brain, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -231,16 +233,18 @@ export interface CinematicHeroProps extends React.HTMLAttributes<HTMLDivElement>
 }
 
 export function CinematicHero({
-  tagline1 = "Intelligence,",
-  tagline2 = "delivered personally.",
-  cardHeading = "News that knows you.",
+  tagline1 = BRAND.taglineLead,
+  tagline2 = BRAND.taglineTail,
+  cardHeading = "See the whole story.",
   cardDescription = (
     <>
-      AI-powered briefings personalised to how you think. Your feed learns every time you read.
+      NEXUS connects related reporting, surfaces key perspectives, and tracks
+      how stories develop — with NLP-powered analysis.
     </>
   ),
-  ctaHeading = "Start your intelligence feed.",
-  ctaDescription = "Join thousands reading smarter. AI briefings, story arcs, and personalised feeds — all in one place.",
+  ctaHeading = "Go beyond the headlines.",
+  ctaDescription =
+    "Explore connected news, compare perspectives, and understand developing stories with NEXUS.",
   className,
   ...props
 }: CinematicHeroProps) {
@@ -347,10 +351,10 @@ export function CinematicHero({
 
       {/* Hero text layer */}
       <div className="hero-text-wrapper absolute z-10 flex flex-col items-center justify-center text-center w-screen px-4 will-change-transform">
-        <h1 className="text-track gsap-reveal text-3d-matte text-5xl md:text-7xl lg:text-[6rem] font-bold tracking-tight mb-2">
+        <h1 className="text-track gsap-reveal text-3d-matte max-w-[94vw] text-[2.25rem] sm:text-5xl md:text-6xl lg:text-[5.75rem] font-bold tracking-tight leading-[0.95] mb-2">
           {tagline1}
         </h1>
-        <h1 className="text-days gsap-reveal text-silver-matte text-5xl md:text-7xl lg:text-[6rem] font-extrabold tracking-tighter">
+        <h1 className="text-days gsap-reveal text-silver-matte max-w-[94vw] text-balance text-[1.8rem] sm:text-4xl md:text-5xl lg:text-[4.25rem] font-extrabold tracking-tight leading-[1.02]">
           {tagline2}
         </h1>
       </div>
@@ -366,7 +370,7 @@ export function CinematicHero({
         <div className="flex flex-col sm:flex-row gap-4">
           <Link
             href="/login"
-            aria-label="Start Reading ET AI News"
+            aria-label="Start Reading with NEXUS"
             className="btn-cta-primary flex items-center justify-center gap-2 px-8 py-4 rounded-[1.25rem] text-base font-semibold focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
           >
             Start Reading
@@ -374,7 +378,7 @@ export function CinematicHero({
           </Link>
           <a
             href="#how-it-works"
-            aria-label="See how ET AI News works"
+            aria-label="See how NEXUS works"
             className="btn-cta-ghost flex items-center justify-center gap-2 px-8 py-4 rounded-[1.25rem] text-base font-medium focus:outline-none focus:ring-2 focus:ring-accent/30"
           >
             See how it works
@@ -394,8 +398,13 @@ export function CinematicHero({
 
             {/* Right / Top: Brand name */}
             <div className="card-right-text gsap-reveal order-1 lg:order-3 flex justify-center lg:justify-end z-20 w-full">
-              <h2 className="text-6xl md:text-[6rem] lg:text-[8rem] font-black uppercase tracking-tighter text-card-silver-matte">
-                ET<span className="text-accent/80">·</span>AI
+              <h2 className="w-full">
+                <NexusWordmark
+                  size="hero"
+                  showMark={false}
+                  textClassName="text-card-silver-matte"
+                  className="w-full justify-center lg:justify-end"
+                />
               </h2>
             </div>
 
@@ -425,7 +434,7 @@ export function CinematicHero({
                       <div className="phone-widget flex justify-between items-center mb-5">
                         <div className="flex flex-col">
                           <span className="text-[10px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">Today</span>
-                          <span className="text-lg font-bold tracking-tight text-white">ET AI</span>
+                          <span className="text-lg font-bold tracking-[0.12em] text-white">{BRAND.name}</span>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-accent-soft text-accent-soft-foreground flex items-center justify-center font-bold text-xs border border-accent/30">AN</div>
                       </div>

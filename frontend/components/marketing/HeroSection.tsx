@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Brain, TrendingUp, Bookmark } from "lucide-react";
 import { categoryStyles } from "@/lib/mock-data";
+import { BRAND } from "@/lib/brand";
 
 const PREVIEW_CARDS = [
   { category: "AI",      categoryColor: "accent",  title: "GPT-5 surpasses all reasoning benchmarks, reshapes research norms", source: "The Verge", timestamp: "2h ago", readTime: 6 },
@@ -91,7 +92,7 @@ export function HeroSection() {
         >
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--border)] bg-[var(--background-secondary)] text-xs font-medium text-[var(--foreground-secondary)]">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            ET AI Hackathon 2026 · Track 8
+            {BRAND.name} · {BRAND.descriptor}
           </span>
         </motion.div>
 
@@ -102,9 +103,9 @@ export function HeroSection() {
           transition={{ duration: 0.5, ease: EASE, delay: 0.1 }}
           className="font-heading font-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight text-[var(--foreground)] leading-[0.95] mb-6"
         >
-          News that
+          Beyond the headlines.
           <br />
-          <span className="text-primary">knows you.</span>
+          <span className="text-primary">Understand the bigger picture.</span>
         </motion.h1>
 
         {/* Sub */}
@@ -114,7 +115,7 @@ export function HeroSection() {
           transition={{ duration: 0.5, ease: EASE, delay: 0.18 }}
           className="text-lg sm:text-xl text-[var(--foreground-secondary)] max-w-xl mx-auto mb-10 leading-relaxed"
         >
-          AI-powered briefings, personalised to how you think. Cut through the noise — get depth, context, and intelligence.
+          {BRAND.description}
         </motion.p>
 
         {/* CTAs */}

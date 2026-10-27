@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Bookmark,
   ChevronLeft,
@@ -13,6 +13,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { NexusWordmark } from "@/components/brand/NexusWordmark";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { getTrendingTopics } from "@/lib/api";
 import { useSidebarStore } from "@/lib/store";
@@ -51,27 +52,11 @@ export function Sidebar() {
       <div className="flex h-[52px] flex-shrink-0 items-center gap-2.5 border-b border-sidebar-border px-4">
         <Link
           href="/home"
-          className="flex min-w-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          aria-label="NEXUS home"
+          title={isCollapsed ? "NEXUS" : undefined}
+          className="flex min-w-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
-          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-primary">
-            <span className="font-heading text-[10px] font-bold leading-none text-primary-foreground">
-              ET
-            </span>
-          </span>
-          <AnimatePresence initial={false}>
-            {!isCollapsed && (
-              <motion.span
-                key="logo-text"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: shouldReduceMotion ? 0 : 0.12 }}
-                className="whitespace-nowrap font-heading text-[14px] font-semibold tracking-tight"
-              >
-                ET <span className="text-accent-soft-foreground">AI</span>
-              </motion.span>
-            )}
-          </AnimatePresence>
+          <NexusWordmark size="sm" showName={!isCollapsed} />
         </Link>
       </div>
 

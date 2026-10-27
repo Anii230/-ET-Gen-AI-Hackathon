@@ -45,8 +45,8 @@ Use this article as your primary context for answering.
     for a in recent_articles:
         news_context += f"- {a.headline} ({a.source}, {a.category})\n"
 
-    system_prompt = f"""You are ET AI News Navigator — an intelligent 
-news assistant for Indian business and financial news.
+    system_prompt = f"""You are NEXUS, an AI-powered news intelligence
+assistant for Indian business and financial news.
 
 {article_context if article_context else news_context}
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { NexusWordmark } from "@/components/brand/NexusWordmark";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,15 +33,10 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
+            aria-label="NEXUS home"
             className="flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-lg"
           >
-            <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
-              <span className="font-heading font-bold text-[10px] text-primary-foreground leading-none">ET</span>
-            </div>
-            <span className="font-heading font-bold text-[15px] tracking-tight text-[var(--foreground)]">
-              ET <span className="text-primary">AI</span>
-              <span className="text-primary">·</span>
-            </span>
+            <NexusWordmark size="md" />
           </Link>
 
           {/* Center nav — desktop */}

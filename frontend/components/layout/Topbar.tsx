@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Search, Settings2 } from "lucide-react";
 import { Popover } from "radix-ui";
 
+import { NexusWordmark } from "@/components/brand/NexusWordmark";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { usePreferencesStore } from "@/lib/store/preferences";
 import { createClient } from "@/lib/supabase/client";
@@ -69,6 +71,14 @@ export function Topbar() {
 
   return (
     <header className="flex h-[52px] flex-shrink-0 items-center gap-3 border-b border-border bg-background px-3 sm:px-4">
+      <Link
+        href="/home"
+        aria-label="NEXUS home"
+        className="flex flex-shrink-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+      >
+        <NexusWordmark size="sm" />
+      </Link>
+
       <form
         onSubmit={handleSearch}
         role="search"

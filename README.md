@@ -1,7 +1,14 @@
-# ET AI News
+# NEXUS
 
-An AI-native news platform built for the ET AI Hackathon 2026 (Track 8).  
-Submission by Avataar.ai x Economic Times, March 2026.
+**News Exploration & Understanding System**
+
+> **Beyond the headlines. Understand the bigger picture.**
+
+NEXUS is an AI-powered news intelligence platform for exploring news, uncovering connections, comparing perspectives, and understanding developing stories with NLP-powered analysis.
+
+Built for Avataar.ai × Economic Times Hackathon 2026 (Track 8).
+
+Submission by Avataar.ai × Economic Times, March 2026.
 
 > "Business news in 2026 is still delivered like it's 2005 — static text articles, one-size-fits-all homepage, same format for everyone. Build something that makes people say 'I can't go back to reading news the old way.'"
 > — PS-8 Problem Statement
@@ -10,7 +17,7 @@ Submission by Avataar.ai x Economic Times, March 2026.
 
 ## Overview
 
-ET AI News replaces the static news homepage with a personalised, agent-driven intelligence layer. Instead of reading 8 separate articles across 15–20 minutes, users get a structured multi-angle briefing they can interact with in under 5 minutes.
+NEXUS replaces the static news homepage with a personalised, agent-driven intelligence layer. Instead of reading 8 separate articles across 15–20 minutes, users get a structured multi-angle briefing they can interact with in under 5 minutes.
 
 The platform runs a three-step autonomous agent pipeline — Enrichment → Ranking → Synthesis — powered by LangGraph, with zero human input between steps.
 

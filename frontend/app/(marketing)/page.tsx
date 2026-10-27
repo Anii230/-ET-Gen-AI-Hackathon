@@ -3,12 +3,25 @@ import { CinematicHero } from "@/components/ui/cinematic-landing-hero";
 import { FeaturesRow } from "@/components/marketing/FeaturesRow";
 import { HowItWorks } from "@/components/marketing/HowItWorks";
 import { Footer } from "@/components/marketing/Footer";
+import { BRAND } from "@/lib/brand";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ET AI News — News that knows you",
-  description:
-    "AI-powered briefings, personalised to how you think. Cut through noise, get depth and intelligence.",
+  title: {
+    absolute: BRAND.title,
+  },
+  description: BRAND.metaDescription,
+  openGraph: {
+    title: BRAND.title,
+    description: BRAND.metaDescription,
+    siteName: BRAND.name,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: BRAND.title,
+    description: BRAND.metaDescription,
+  },
 };
 
 export default function MarketingPage() {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const geist = Geist({
@@ -22,14 +23,32 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "ET AI News — AI-Powered News Intelligence",
-  description:
-    "AI-native news platform delivering personalized briefings, story arc tracking, and deep intelligence — built for the ET AI Hackathon 2026.",
-  keywords: ["AI news", "personalized news", "ET AI", "intelligence", "briefings"],
+  title: {
+    default: BRAND.title,
+    template: `%s — ${BRAND.name}`,
+  },
+  description: BRAND.metaDescription,
+  applicationName: BRAND.name,
+  keywords: [
+    BRAND.name,
+    "news intelligence",
+    "AI news",
+    "NLP news analysis",
+    "news exploration",
+    "story arcs",
+    "AI briefings",
+    "personalized news",
+  ],
   openGraph: {
-    title: "ET AI News — AI-Powered News Intelligence",
-    description: "News that knows you. AI-powered briefings, personalised to how you think.",
+    title: BRAND.title,
+    description: BRAND.metaDescription,
+    siteName: BRAND.name,
     type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: BRAND.title,
+    description: BRAND.metaDescription,
   },
 };
 
