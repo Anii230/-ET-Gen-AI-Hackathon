@@ -1,740 +1,629 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  Brain,
+  ChevronRight,
+  Target,
+  TrendingUp,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getStoryArcs, getBriefing, StoryArc } from "@/lib/api";
-import { motion, AnimatePresence } from "framer-motion";
-import { Brain, Target, Shield, Zap, ChevronRight, TrendingUp } from "lucide-react";
+import { cn, decodeEntities, formatHeadline, pluralize } from "@/lib/utils";
 
-const sentimentColor = {
-  positive: '#10b981',
-  negative: '#ef4444',
-  neutral: '#6366f1',
+const TREND_LABEL: Record<string, string> = {
+  improving: "Improving",
+  declining: "Declining",
+  stable: "Stable",
 };
 
-const trendLabel = {
-  improving: '↑ Improving',
-  declining: '↓ Declining', 
-  stable: '→ Stable',
-};
+function sentimentClass(sentiment: string): string {
+  if (sentiment === "positive")
+    return "border-success/25 bg-success/10 text-success";
+  if (sentiment === "negative")
+    return "border-destructive/25 bg-destructive/10 text-destructive";
+  return "border-border bg-tag text-tag-foreground";
+}
 
-// ── Markdown Parser ───────────────────────────────────────
-const MarkdownText = ({ content, className = "" }: { content: string, className?: string }) => {
+function sentimentDot(sentiment: string): string {
+  if (sentiment === "positive") return "bg-success";
+  if (sentiment === "negative") return "bg-destructive";
+  return "bg-muted-foreground";
+}
+
+function MarkdownText({ content }: { content: string }) {
   if (!content) return null;
-  // Splits by **text** and renders as strong
   const parts = content.split(/(\*\*.*?\*\*)/g);
   return (
-    <span className={className}>
-      {parts.map((p, i) => {
-        if (p.startsWith('**') && p.endsWith('**')) {
-          return <strong key={i} className="font-black text-foreground">{p.slice(2, -2)}</strong>;
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <strong key={index} className="font-semibold text-foreground">
+              {part.slice(2, -2)}
+            </strong>
+          );
         }
-        return p;
+        return part;
       })}
-    </span>
+    </>
   );
-};
+}
 
-// ── Components ───────────────────────────────────────
-
-const ArcSentimentChart = ({ 
-  timeline, 
-  onPointClick, 
-  selectedIndices 
-}: { 
-  timeline: StoryArc['timeline'], 
-  onPointClick: (index: number) => void,
-  selectedIndices: number[]
-}) => {
-  const points = timeline.map((event, i) => {
-    const x = (i / (timeline.length - 1 || 1)) * 100;
-    const y = event.sentiment === 'positive' ? 20 : event.sentiment === 'negative' ? 80 : 50;
-    return { x, y };
+function SentimentChart({
+  timeline,
+  selectedIndices,
+  onToggle,
+}: {
+  timeline: StoryArc["timeline"];
+  selectedIndices: number[];
+  onToggle: (index: number) => void;
+}) {
+  const points = timeline.map((event, index) => {
+    const x = timeline.length > 1 ? (index / (timeline.length - 1)) * 100 : 50;
+    const y =
+      event.sentiment === "positive"
+        ? 24
+        : event.sentiment === "negative"
+          ? 76
+          : 50;
+    return { x, y, event };
   });
 
-  const pointsString = points.map(p => `${p.x},${p.y}`).join(' ');
+  const line = points.map((point) => `${point.x},${point.y}`).join(" ");
 
   return (
-    <div className="h-[280px] w-full bg-muted/20 rounded-2xl border border-border/50 p-8 relative overflow-visible group backdrop-blur-sm">
-      <div className="absolute top-4 left-6 text-[10px] uppercase tracking-widest text-indigo-500 font-black flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-        Comparative Analysis Flow
-      </div>
-      <div className="absolute top-4 right-6 text-[10px] text-muted-foreground/60 font-medium">
-        Select nodes for narrative synthesis
-      </div>
-      
-      {/* Background Grid Lines */}
-      <div className="absolute inset-0 z-0 flex flex-col justify-between py-12 px-8 opacity-20 pointer-events-none">
-        <div className="w-full h-px bg-indigo-500/20" />
-        <div className="w-full h-px bg-indigo-500/20" />
-        <div className="w-full h-px bg-indigo-500/20" />
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Sentiment flow
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          Select points to synthesise
+        </p>
       </div>
 
-      <div className="w-full h-full relative z-10 px-2">
-        {/* SVG Path Layer Only (No Nodes) */}
-        <svg 
-          viewBox="0 0 100 100" 
-          preserveAspectRatio="none" 
-          className="w-full h-full overflow-visible"
+      <div className="relative h-[190px] w-full sm:h-[220px]">
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-[24%] h-px bg-border"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-1/2 h-px bg-border"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-[76%] h-px bg-border"
+        />
+
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden
+          className="absolute inset-0 h-full w-full"
         >
-          <motion.polyline
+          <polyline
             fill="none"
-            stroke="url(#sentimentGradient)"
-            strokeWidth="3"
+            stroke="var(--accent)"
+            strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            points={pointsString}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
+            vectorEffect="non-scaling-stroke"
+            points={line}
+            opacity={0.55}
           />
-          <defs>
-            <linearGradient id="sentimentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#10b981" />
-              <stop offset="50%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#ef4444" />
-            </linearGradient>
-          </defs>
         </svg>
 
-        {/* HTML Node Overlay (Guarantees Perfectly Circular Nodes) */}
-        <div className="absolute inset-0 pointer-events-none px-2">
-          {points.map((p, i) => {
-            const isSelected = selectedIndices.includes(i);
-            return (
-              <div 
-                key={i}
-                style={{
-                  left: `${p.x}%`,
-                  top: `${p.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                }}
-                className="absolute pointer-events-auto cursor-pointer"
-                onClick={() => onPointClick(i)}
-              >
-                {/* Hit Area Glower */}
-                <AnimatePresence>
-                  {isSelected && (
-                    <motion.div
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 2.2, opacity: 0.2 }}
-                      exit={{ scale: 0.5, opacity: 0 }}
-                      className="absolute inset-0 rounded-full bg-indigo-500 blur-sm"
-                    />
+        {points.map((point, index) => {
+          const isSelected = selectedIndices.includes(index);
+          const label = `${point.event.date}: ${formatHeadline(point.event.headline)} (${point.event.sentiment})`;
+          return (
+            <button
+              key={`${point.event.article_id}-${index}`}
+              type="button"
+              onClick={() => onToggle(index)}
+              aria-pressed={isSelected}
+              aria-label={label}
+              title={label}
+              style={{ left: `${point.x}%`, top: `${point.y}%` }}
+              className={cn(
+                "absolute z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full border-2 transition-transform",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                isSelected
+                  ? "h-4 w-4 scale-110 border-accent bg-accent"
+                  : "h-3 w-3 border-background bg-foreground/60 hover:scale-125"
+              )}
+            >
+              <span className="sr-only">{point.event.sentiment}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-2 flex items-center justify-between text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <span>Start</span>
+        <span>Neutral</span>
+        <span>Latest</span>
+      </div>
+    </div>
+  );
+}
+
+function NarrativeTimeline({ timeline }: { timeline: StoryArc["timeline"] }) {
+  const router = useRouter();
+
+  return (
+    <div className="overflow-x-auto pb-2">
+      <ol className="flex min-w-full gap-3" style={{ width: "max-content" }}>
+        {timeline.map((event, index) => (
+          <li key={`${event.article_id}-${index}`} className="w-[240px] flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => router.push(`/home/article/${event.article_id}`)}
+              className="group flex h-full w-full cursor-pointer flex-col rounded-lg border border-border bg-card p-3.5 text-left transition-colors hover:border-border-hover hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  T+{index + 1}
+                </span>
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    sentimentDot(event.sentiment)
                   )}
-                </AnimatePresence>
-                
-                {/* Larger, High-Contrast Node */}
-                <motion.div
-                  initial={false}
-                  animate={{
-                    width: isSelected ? 16 : 12,
-                    height: isSelected ? 16 : 12,
-                    backgroundColor: isSelected ? '#ffffff' : 'var(--background)',
-                    borderColor: isSelected ? '#818cf8' : '#818cf8',
-                    borderWidth: 2.5,
-                  }}
-                  whileHover={{ scale: 1.2, backgroundColor: '#818cf8', borderColor: '#fff' }}
-                  className="rounded-full shadow-lg transition-all ring-4 ring-indigo-500/5"
+                  aria-hidden
                 />
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="absolute left-2 top-[20%] text-[8px] text-emerald-400/50 font-bold uppercase rotate-270">POS</div>
-      <div className="absolute left-2 top-[50%] text-[8px] text-indigo-400/50 font-bold uppercase rotate-270">NEU</div>
-      <div className="absolute left-2 top-[80%] text-[8px] text-rose-400/50 font-bold uppercase rotate-270">NEG</div>
+              <time className="mt-2 text-[10.5px] text-muted-foreground">
+                {event.date}
+              </time>
+              <p className="mt-1 line-clamp-2 text-[13px] font-medium leading-snug text-foreground group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
+                {formatHeadline(event.headline)}
+              </p>
+              <span className="mt-auto flex items-center gap-1 pt-3 text-[10.5px] text-muted-foreground">
+                {event.source}
+                <ChevronRight className="h-3 w-3" aria-hidden />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
     </div>
   );
-};
+}
 
-const ArcNarrativeTimeline = ({ timeline }: { timeline: StoryArc['timeline'] }) => {
-  const router = useRouter();
-  const scrollRef = useRef<HTMLDivElement>(null);
+function ArcPlayers({ players }: { players: StoryArc["key_players"] }) {
+  if (players.length === 0) {
+    return (
+      <p className="py-4 text-[12px] text-muted-foreground">
+        No dominant players were detected in this arc.
+      </p>
+    );
+  }
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (scrollRef.current) {
-      // Check if the scroll is horizontal/vertical and stop propagation to prevent parent scrolling
-      e.preventDefault();
-      e.stopPropagation();
-      scrollRef.current.scrollBy({
-        left: e.deltaY * 1.5,
-        behavior: 'auto' // 'smooth' can sometimes feel laggy in tight boxes, 'auto' is more responsive if implemented properly
-      });
-    }
-  };
-  
   return (
-    <div 
-      ref={scrollRef}
-      onWheel={handleWheel}
-      style={{
-        paddingTop: '160px',
-        paddingBottom: '160px',
-      }}
-      className="relative w-full overflow-x-auto custom-scrollbar -mx-4 px-4 mt-2 no-scrollbar cursor-grab active:cursor-grabbing"
-    >
-      <div 
-        className="relative h-full flex items-center justify-center" 
-        style={{ 
-          width: 'max-content',
-          minWidth: '100%',
-          paddingLeft: '120px',
-          paddingRight: '120px'
-        }}
-      >
-        {/* Axis Line */}
-        <div className="absolute inset-x-0 top-1/2 h-[2px] bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent -translate-y-1/2 z-0 opacity-40" />
-        
-        {/* Timeline Events */}
-        <div className="flex items-center gap-[150px] relative z-10 py-12">
-          {timeline.map((event, i) => {
-            const isUpper = i % 2 === 0;
-            const color = sentimentColor[event.sentiment as keyof typeof sentimentColor] || '#6366f1';
-            
-            return (
-              <div 
-                key={i} 
-                className="relative flex flex-col items-center flex-shrink-0" 
-              >
-                {/* Connector Line */}
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: 60 }}
-                  transition={{ delay: i * 0.1 + 0.3, duration: 0.5 }}
-                  className={`absolute w-px border-l border-dashed border-indigo-500/30 ${isUpper ? 'bottom-full mb-3 origin-bottom' : 'top-full mt-3 origin-top'}`}
-                >
-                    <div className={`absolute ${isUpper ? 'top-0' : 'bottom-0'} left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-500/30 border border-indigo-500/40`} />
-                </motion.div>
-
-                {/* Content Card Area */}
-                <motion.div
-                  initial={{ opacity: 0, y: isUpper ? -20 : 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 + 0.4 }}
-                  whileHover={{ 
-                    y: isUpper ? -5 : 5, 
-                    scale: 1.02,
-                    transition: { duration: 0.3, ease: "easeOut" }
-                  }}
-                  className={`absolute w-56 cursor-pointer group z-30 ${isUpper ? 'bottom-[80px]' : 'top-[80px]'}`}
-                  onClick={() => router.push(`/home/article/${event.article_id}`)}
-                >
-                  <div className="relative p-4 rounded-[20px] bg-card/70 border border-white/10 hover:border-indigo-500/50 hover:bg-card transition-all shadow-xl backdrop-blur-xl group-hover:shadow-indigo-500/10">
-                     {/* Sentiment Accent */}
-                    <div 
-                      className="absolute top-0 left-6 w-10 h-1 rounded-b-xl" 
-                      style={{ 
-                        backgroundColor: color,
-                        boxShadow: `0 2px 10px ${color}40`
-                      }}
-                    />
-                    
-                    <div className="flex items-center justify-between mb-4">
-                       <span className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">{event.date}</span>
-                       <div 
-                        className="text-[9px] font-bold px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 uppercase text-muted-foreground/80 tracking-normal"
-                       >
-                        {event.source}
-                       </div>
-                    </div>
-                    
-                    <h4 className="text-[13px] font-bold leading-tight text-foreground group-hover:text-indigo-400 transition-colors line-clamp-2 tracking-tight">
-                       {event.headline}
-                    </h4>
-
-                    <div className="mt-3 flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-all duration-300">
-                      <div className="h-px flex-1 bg-gradient-to-r from-indigo-500/40 to-transparent" />
-                      <ChevronRight className="w-3 h-3 text-indigo-500 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Node on Axis */}
-                <div className="relative z-20 flex items-center justify-center">
-                    {/* Radar Pulse Node */}
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', damping: 10, stiffness: 200, delay: i * 0.1 }}
-                        className="relative w-10 h-10 flex items-center justify-center cursor-help"
-                    >
-                        {/* Radar Rings */}
-                        <div 
-                            className="absolute inset-0 rounded-full border border-current opacity-20 animate-[ping_3s_infinite]" 
-                            style={{ color }}
-                        />
-                         <div 
-                            className="absolute inset-2 rounded-full border-2 border-current opacity-40 animate-[ping_2s_infinite]" 
-                            style={{ color }}
-                        />
-                        
-                        {/* Core Node */}
-                        <div 
-                            className="w-4 h-4 rounded-full border-2 border-card shadow-2xl relative z-30"
-                            style={{ backgroundColor: color, boxShadow: `0 0 20px ${color}80` }}
-                        />
-                        
-                        {/* Sentiment Glow */}
-                        <div 
-                            className="absolute inset-0 rounded-full blur-[12px] opacity-30 pointer-events-none" 
-                            style={{ backgroundColor: color }}
-                        />
-                    </motion.div>
-                    
-                    {/* Tick Label Overlay */}
-                    <div className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                        <span className="text-[10px] font-black text-foreground tracking-[0.2em] bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                            T+{i + 1}
-                        </span>
-                        <div className="h-3 w-px bg-white/10 mt-1" />
-                    </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ArcPlayersBubble = ({ players }: { players: StoryArc['key_players'] }) => {
-  return (
-    <div className="flex flex-col gap-3 mt-1 w-full">
-      {players.slice(0, 4).map((player, i) => (
-        <motion.div
+    <ul className="space-y-1.5">
+      {players.slice(0, 4).map((player) => (
+        <li
           key={player.name}
-          initial={{ x: 20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: i * 0.1 }}
-          className="flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted transition-all group"
+          className="flex items-center gap-2.5 rounded-lg border border-border bg-background/60 p-2"
         >
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[10px] font-black text-indigo-500 group-hover:scale-110 transition-transform">
-            {player.name[0]}
+          <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-border bg-tag text-[11px] font-semibold text-tag-foreground">
+            {decodeEntities(player.name).slice(0, 1)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12.5px] font-medium text-foreground">
+              {decodeEntities(player.name)}
+            </p>
+            <p className="text-[10.5px] text-muted-foreground">
+              {player.mention_count}{" "}
+              {pluralize(player.mention_count, "mention")}
+            </p>
           </div>
-          <div className="flex flex-col flex-1 min-w-0">
-             <span className="text-[13px] font-bold text-foreground truncate">{player.name}</span>
-             <div className="flex items-center gap-2">
-                <div className="flex -space-x-1">
-                   {[...Array(3)].map((_, j) => (
-                     <div key={j} className="w-1.5 h-1.5 rounded-full bg-indigo-500/30 border border-background" />
-                   ))}
-                </div>
-                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{player.mention_count} Mentions</span>
-             </div>
-          </div>
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
-          />
-        </motion.div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
-};
+}
 
 export default function TrendingPage() {
+  const router = useRouter();
+  const shouldReduceMotion = useReducedMotion();
+
   const [arcs, setArcs] = useState<StoryArc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [activeArc, setActiveArc] = useState<string | null>(null);
   const [selectedEventIndices, setSelectedEventIndices] = useState<number[]>([]);
   const [summarizing, setSummarizing] = useState(false);
   const [summaryResult, setSummaryResult] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    getStoryArcs()
+      .then((data) => {
+        if (cancelled) return;
+        setArcs(data);
+        setActiveArc((current) =>
+          current && data.some((arc) => arc.id === current)
+            ? current
+            : data[0]?.id ?? null
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setArcs([]);
+        setError(
+          "Story arcs could not be loaded. Check the connection and try again."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
   useEffect(() => {
     setSelectedEventIndices([]);
     setSummaryResult("");
   }, [activeArc]);
 
+  const selected = useMemo(
+    () => arcs.find((arc) => arc.id === activeArc) ?? null,
+    [arcs, activeArc]
+  );
+
   const toggleEvent = (index: number) => {
-    setSelectedEventIndices(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index) 
+    setSelectedEventIndices((prev) =>
+      prev.includes(index)
+        ? prev.filter((item) => item !== index)
         : [...prev, index].sort((a, b) => a - b)
     );
   };
 
-  const generateAILensSummary = async () => {
-    if (selectedEventIndices.length === 0 || !activeArc) return;
-    const selected = arcs.find(a => a.id === activeArc);
-    if (!selected) return;
+  const generateSummary = async () => {
+    if (selectedEventIndices.length === 0 || !selected) return;
 
     setSummarizing(true);
     setSummaryResult("");
-    
+
     try {
-      const articleIds = selectedEventIndices.map(i => selected.timeline[i].article_id);
-      const res = await getBriefing(
-        "demo_user", 
-        "Summarize these articles into a very concise briefing of 2 sentences max. Focus on narrative connections. No bold headers.", 
+      const articleIds = selectedEventIndices.map(
+        (index) => selected.timeline[index].article_id
+      );
+      const result = await getBriefing(
+        "demo_user",
+        "Summarise these articles into a very concise briefing of two sentences maximum. Focus on narrative connections. No bold headers.",
         articleIds
       );
-      setSummaryResult(res.briefing);
-    } catch (error) {
-      console.error("Synthesis failed:", error);
-      setSummaryResult("Intelligence Analysis: Sorry, I couldn't synthesize these specific events. Please try again.");
+      setSummaryResult(result.briefing);
+    } catch {
+      setSummaryResult(
+        "Sorry, these events could not be synthesised right now. Please try again."
+      );
     } finally {
       setSummarizing(false);
     }
   };
 
-  useEffect(() => {
-    getStoryArcs()
-      .then(data => {
-        setArcs(data);
-        if (data.length > 0) setActiveArc(data[0].id);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '60vh',
-      color: 'var(--muted-foreground)',
-      fontSize: '14px',
-    }}>
-      Building story arcs...
-    </div>
-  );
-
-  const selected = arcs.find(a => a.id === activeArc);
-
-  return (
-    <div style={{
-      padding: '32px',
-      maxWidth: '100%',
-      overflowX: 'hidden',
-      position: 'relative'
-    }}>
-      <div style={{marginBottom: '32px'}}>
-        <h1 style={{
-          fontSize: '28px',
-          fontWeight: 800,
-          color: 'var(--foreground)',
-          marginBottom: '6px',
-          letterSpacing: '-0.02em',
-        }}>
-          Story Arcs
-        </h1>
-        <p style={{
-          fontSize: '15px',
-          color: 'var(--muted-foreground)',
-          opacity: 0.8
-        }}>
-          AI-tracked narratives across ongoing news stories
-        </p>
-      </div>
-
-      {arcs.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '60px',
-          color: 'var(--muted-foreground)',
-        }}>
-          No story arcs yet. Check back after more articles 
-          are fetched.
-        </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '260px minmax(0, 1fr)',
-          gap: '24px',
-          alignItems: 'start',
-          width: '100%'
-        }}>
-          
-          {/* Arc list */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}>
-            {arcs.map(arc => (
-              <button
-                key={arc.id}
-                onClick={() => setActiveArc(arc.id)}
-                style={{
-                  padding: '14px',
-                  borderRadius: '10px',
-                  border: `1px solid ${
-                    activeArc === arc.id 
-                      ? sentimentColor[
-                          arc.overall_sentiment as keyof 
-                          typeof sentimentColor
-                        ] || '#6366f1'
-                      : 'var(--border)'
-                  }`,
-                  background: activeArc === arc.id
-                    ? `${sentimentColor[
-                        arc.overall_sentiment as keyof 
-                        typeof sentimentColor
-                      ] || '#6366f1'}10`
-                    : 'var(--card)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '6px',
-                }}>
-                  <span style={{
-                    fontSize: '14.5px',
-                    fontWeight: 600,
-                    color: 'var(--foreground)',
-                    lineHeight: '1.3',
-                  }}>
-                    {arc.title}
-                  </span>
-                  <span style={{
-                    fontSize: '11px',
-                    padding: '3px 8px',
-                    borderRadius: '4px',
-                    background: `${
-                      sentimentColor[
-                        arc.overall_sentiment as keyof 
-                        typeof sentimentColor
-                      ] || '#6366f1'
-                    }20`,
-                    color: sentimentColor[
-                      arc.overall_sentiment as keyof 
-                      typeof sentimentColor
-                    ] || '#6366f1',
-                    flexShrink: 0,
-                    marginLeft: '8px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                  }}>
-                    {arc.overall_sentiment}
-                  </span>
-                </div>
-                <span style={{
-                  fontSize: '13px',
-                  color: 'var(--muted-foreground)',
-                  marginTop: '4px',
-                  display: 'block'
-                }}>
-                  {arc.article_count} articles · {
-                    trendLabel[
-                      arc.sentiment_trend as keyof 
-                      typeof trendLabel
-                    ] || arc.sentiment_trend
-                  }
-                </span>
-              </button>
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8">
+        <Skeleton className="h-7 w-40" />
+        <Skeleton className="mt-2 h-3 w-72" />
+        <div className="mt-8 grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-20 w-full rounded-lg" />
             ))}
           </div>
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-2/3" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-52 w-full rounded-xl" />
+            <Skeleton className="h-40 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-          {/* Arc detail */}
-          {selected && (
-            <div 
-              key={selected.id}
-              className="border border-border rounded-[32px] p-8 bg-card shadow-sm min-w-0"
-            >
-              {/* Header */}
-              <div className="mb-10">
-                <div className="flex items-center gap-4 mb-5">
-                  <h2 className="text-[32px] font-black text-foreground tracking-tight">
-                    {selected.title}
+  if (error) {
+    return (
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-16 sm:px-6">
+        <ErrorState
+          title="Story arcs unavailable"
+          message={error}
+          onRetry={() => setReloadKey((key) => key + 1)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 sm:py-8">
+      <header className="mb-6">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted">
+            <TrendingUp className="h-4 w-4 text-foreground" aria-hidden />
+          </span>
+          <h1 className="font-heading text-[24px] font-semibold tracking-tight text-foreground sm:text-[28px]">
+            Story Arcs
+          </h1>
+        </div>
+        <p className="mt-2 text-[13.5px] text-muted-foreground">
+          AI-tracked narratives across ongoing news stories.
+        </p>
+      </header>
+
+      {arcs.length === 0 ? (
+        <EmptyState
+          icon={TrendingUp}
+          title="No story arcs yet"
+          description="Arcs appear once the newsroom has enough related coverage. Check back after more articles are ingested."
+        />
+      ) : (
+        <div className="grid items-start gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6">
+          <nav aria-label="Story arcs" className="space-y-1.5">
+            {arcs.map((arc) => {
+              const isActive = arc.id === activeArc;
+              return (
+                <button
+                  key={arc.id}
+                  type="button"
+                  onClick={() => setActiveArc(arc.id)}
+                  aria-current={isActive ? "true" : undefined}
+                  className={cn(
+                    "w-full cursor-pointer rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive
+                      ? "border-accent/40 bg-accent-soft"
+                      : "border-border bg-card hover:border-border-hover"
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[13.5px] font-medium leading-snug text-foreground">
+                      {arc.title}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex flex-shrink-0 items-center gap-1 rounded-[4px] border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
+                        sentimentClass(arc.overall_sentiment)
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "h-1 w-1 rounded-full",
+                          sentimentDot(arc.overall_sentiment)
+                        )}
+                      />
+                      {arc.overall_sentiment}
+                    </span>
+                  </div>
+                  <span className="mt-2 block text-[11px] text-muted-foreground">
+                    {arc.article_count}{" "}
+                    {pluralize(arc.article_count, "story", "stories")}
+                    <span aria-hidden className="mx-1">
+                      ·
+                    </span>
+                    {TREND_LABEL[arc.sentiment_trend] || arc.sentiment_trend}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {selected ? (
+            <article key={selected.id} className="min-w-0 rounded-xl border border-border bg-card p-4 sm:p-6">
+              <header>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-balance font-heading text-[22px] font-semibold tracking-tight text-foreground sm:text-[26px]">
+                    {formatHeadline(selected.title)}
                   </h2>
-                  <span className={`text-[12px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest border transition-colors ${
-                      selected.overall_sentiment === 'positive' 
-                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
-                        : selected.overall_sentiment === 'negative' 
-                          ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' 
-                          : 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20'
-                  }`}>
-                    {selected.overall_sentiment} · {
-                      trendLabel[
-                        selected.sentiment_trend as keyof 
-                        typeof trendLabel
-                      ] || selected.sentiment_trend
-                    }
+                  <span
+                    className={cn(
+                      "flex items-center gap-1 rounded-[4px] border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      sentimentClass(selected.overall_sentiment)
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "h-1 w-1 rounded-full",
+                        sentimentDot(selected.overall_sentiment)
+                      )}
+                    />
+                    {selected.overall_sentiment} ·{" "}
+                    {TREND_LABEL[selected.sentiment_trend] ||
+                      selected.sentiment_trend}
                   </span>
                 </div>
-                <p className="text-[16px] text-muted-foreground leading-relaxed max-w-3xl font-medium opacity-80">
-                  {selected.description}
+                <p className="mt-2.5 max-w-3xl text-[13.5px] leading-relaxed text-muted-foreground">
+                  {decodeEntities(selected.description)}
                 </p>
-              </div>
+              </header>
 
-              {/* Interactive Sentiment Chart & Influence Cards */}
-              <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 mb-10 items-stretch">
-                <ArcSentimentChart 
-                  key={selected.id}
-                  timeline={selected.timeline} 
-                  onPointClick={toggleEvent}
+              <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+                <SentimentChart
+                  timeline={selected.timeline}
                   selectedIndices={selectedEventIndices}
+                  onToggle={toggleEvent}
                 />
-                 <div className="bg-muted/30 rounded-3xl border border-border/50 p-6 flex flex-col items-start overflow-hidden relative backdrop-blur-sm">
-                    <div className="text-[10px] uppercase tracking-[0.3em] text-indigo-600 font-black mb-6 self-start flex items-center gap-2">
-                      <Target className="w-3.5 h-3.5" />
-                      Network Influence
-                    </div>
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/[0.03] blur-3xl -mr-16 -mt-16 rounded-full" />
-                   <div className="flex-1 w-full overflow-y-auto pr-1 flex flex-col gap-1 custom-scrollbar min-h-[140px]">
-                     <ArcPlayersBubble key={selected.id} players={selected.key_players} />
-                   </div>
-                   
-                   {selectedEventIndices.length > 1 && (
-                     <motion.button
-                       initial={{ y: 20, opacity: 0 }}
-                       animate={{ y: 0, opacity: 1 }}
-                       onClick={generateAILensSummary}
-                       className="mt-6 w-full py-3.5 px-5 bg-indigo-600 hover:bg-indigo-700 rounded-2xl text-[12px] font-black text-white shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 z-20 uppercase tracking-[0.2em]"
-                     >
-                       <Brain className="w-4 h-4" />
-                       Synthesize {selectedEventIndices.length} Events
-                     </motion.button>
-                   )}
-                </div>
+
+                <section className="flex flex-col rounded-xl border border-border bg-background/50 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Target
+                      className="h-3.5 w-3.5 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Network influence
+                    </h3>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    <ArcPlayers players={selected.key_players} />
+                  </div>
+
+                  {selectedEventIndices.length > 1 ? (
+                    <Button
+                      size="lg"
+                      className="mt-4 w-full"
+                      onClick={() => void generateSummary()}
+                      disabled={summarizing}
+                    >
+                      <Brain className="h-3.5 w-3.5" aria-hidden />
+                      {summarizing
+                        ? "Synthesising…"
+                        : `Synthesise ${selectedEventIndices.length} events`}
+                    </Button>
+                  ) : null}
+                </section>
               </div>
 
-              {/* Comparative Preview Area */}
-              <AnimatePresence>
-                {(selectedEventIndices.length > 0 || summaryResult || summarizing) && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden mb-10 space-y-5"
-                  >
-                    {/* Multi-Select Header */}
-                    <div className="flex items-center justify-between px-2">
-                       <div className="flex items-center gap-4">
-                          <h3 className="text-[12px] font-black text-indigo-600 uppercase tracking-[0.3em]">Active Analysis Panel</h3>
-                          <div className="h-4 w-px bg-border" />
-                          <span className="text-[13px] font-bold text-muted-foreground">{selectedEventIndices.length} articles indexed</span>
-                       </div>
-                       <button 
-                         onClick={() => { setSelectedEventIndices([]); setSummaryResult(""); }} 
-                         className="text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-rose-600 transition-colors bg-muted/50 px-3 py-1.5 rounded-lg border border-border"
-                       >
-                        Clear Selection
-                       </button>
+              {selectedEventIndices.length > 0 || summaryResult || summarizing ? (
+                <motion.section
+                  initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
+                  animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="mt-6 space-y-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        Analysis panel
+                      </h3>
+                      <span className="text-[11px] text-muted-foreground">
+                        {selectedEventIndices.length}{" "}
+                        {pluralize(selectedEventIndices.length, "event")}{" "}
+                        selected
+                      </span>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedEventIndices([]);
+                        setSummaryResult("");
+                      }}
+                      className="cursor-pointer text-[11px] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
 
-                    {/* AI Summary Reveal */}
-                    {(summarizing || summaryResult) && (
-                      <div className="p-8 rounded-[32px] bg-indigo-600/[0.03] border border-indigo-500/10 relative overflow-hidden shadow-inner">
-                        <div className="absolute top-0 left-0 w-1.5 bg-indigo-600 h-full" />
-                        <div className="flex items-center gap-3 mb-5">
-                           <div className="w-8 h-8 rounded-full bg-indigo-600/10 flex items-center justify-center">
-                              <Brain className={`w-4 h-4 text-indigo-600 ${summarizing ? 'animate-pulse' : ''}`} />
-                           </div>
-                           <span className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.3em]">AI Narrative Lens Synthesis</span>
-                        </div>
-                        {summarizing ? (
-                          <div className="space-y-3">
-                            <div className="h-4 w-full bg-muted animate-pulse rounded-full" />
-                            <div className="h-4 w-2/3 bg-muted animate-pulse rounded-full" />
-                          </div>
-                        ) : (
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-[17px] leading-relaxed text-foreground/90 font-medium italic"
-                          >
-                            <MarkdownText content={summaryResult} />
-                          </motion.div>
-                        )}
+                  {summarizing || summaryResult ? (
+                    <div className="rounded-xl border border-border bg-muted/30 p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        <Brain
+                          className="h-3.5 w-3.5 text-accent-soft-foreground"
+                          aria-hidden
+                        />
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-soft-foreground">
+                          AI narrative lens
+                        </p>
                       </div>
-                    )}
+                      {summarizing ? (
+                        <div className="space-y-2">
+                          <Skeleton className="h-3.5 w-full" />
+                          <Skeleton className="h-3.5 w-2/3" />
+                        </div>
+                      ) : (
+                        <p className="text-[13.5px] leading-relaxed text-foreground/85">
+                          <MarkdownText content={summaryResult} />
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
 
-                    {/* Comparative Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {selectedEventIndices.map((index) => {
-                        const event = selected.timeline[index];
-                        const color = sentimentColor[event.sentiment as keyof typeof sentimentColor] || '#6366f1';
-                        return (
-                          <motion.div
-                            key={index}
-                            layout
-                            initial={{ x: -20, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            className="p-6 rounded-3xl bg-muted/20 border border-border/60 hover:border-indigo-500/30 transition-all flex flex-col gap-4 group relative hover:shadow-lg hover:shadow-black/[0.02]"
-                          >
-                            <div className="flex items-center justify-between">
-                               <div className="flex items-center gap-3">
-                                  <div 
-                                    className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.1)]" 
-                                    style={{ backgroundColor: color, boxShadow: `0 0 12px ${color}30` }} 
-                                  />
-                                  <span className="text-[11px] text-muted-foreground uppercase font-black tracking-[0.2em]">{event.date}</span>
-                               </div>
-                               <button 
-                                  onClick={() => toggleEvent(index)}
-                                  className="p-1 px-2 rounded-lg bg-muted border border-border opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-black uppercase tracking-tighter"
-                                >
-                                 Deselect
-                               </button>
-                            </div>
-                            <h4 
-                              className="font-bold text-[16px] text-foreground hover:text-indigo-600 cursor-pointer transition-colors line-clamp-2 leading-snug" 
-                              onClick={() => router.push(`/home/article/${event.article_id}`)}
+                  <div className="grid gap-2.5 md:grid-cols-2">
+                    {selectedEventIndices.map((index) => {
+                      const event = selected.timeline[index];
+                      return (
+                        <div
+                          key={index}
+                          className="flex flex-col gap-2 rounded-lg border border-border bg-background/50 p-3.5"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">
+                              <span
+                                aria-hidden
+                                className={cn(
+                                  "h-1.5 w-1.5 rounded-full",
+                                  sentimentDot(event.sentiment)
+                                )}
+                              />
+                              {event.date}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => toggleEvent(index)}
+                              className="cursor-pointer text-[10.5px] text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             >
-                              {event.headline}
-                            </h4>
-                            <div className="mt-auto pt-3 border-t border-border/40 flex items-center justify-between text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-                              <span className="truncate max-w-[140px]">{event.source}</span>
-                              <span className="text-[9px] px-2 py-0.5 rounded bg-muted border border-border">{event.sentiment}</span>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                              Remove
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              router.push(`/home/article/${event.article_id}`)
+                            }
+                            className="cursor-pointer text-left text-[13.5px] font-medium leading-snug text-foreground transition-colors hover:text-accent-soft-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {formatHeadline(event.headline)}
+                          </button>
+                          <div className="mt-auto flex items-center justify-between border-t border-border pt-2 text-[10.5px] text-muted-foreground">
+                            <span className="truncate">{event.source}</span>
+                            <span className="capitalize">{event.sentiment}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.section>
+              ) : null}
 
-              {/* Narrative Progression (Horizontal Timeline) */}
-              <div className="mt-14 overflow-visible">
-                <div className="flex items-center gap-4 mb-10 px-2 group">
-                   <div className="w-12 h-px bg-indigo-500/20 group-hover:w-20 transition-all duration-500" />
-                   <p className="text-[11px] uppercase font-black tracking-[0.4em] text-indigo-600/60">
-                     Strategic Timeline
-                   </p>
-                   <div className="flex-1 h-px bg-border/40" />
+              <section className="mt-8">
+                <div className="mb-3 flex items-center gap-2">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Strategic timeline
+                  </h3>
+                  <span className="h-px flex-1 bg-border" aria-hidden />
                 </div>
-                <div className="bg-muted/20 rounded-[40px] border border-border/40 p-2 overflow-hidden relative">
-                   <div className="absolute top-0 left-0 w-24 h-full bg-gradient-to-r from-background to-transparent z-40 pointer-events-none rounded-l-[40px]" />
-                   <div className="absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-background to-transparent z-40 pointer-events-none rounded-r-[40px]" />
-                   <ArcNarrativeTimeline timeline={selected.timeline} />
-                </div>
-              </div>
+                <NarrativeTimeline timeline={selected.timeline} />
+              </section>
 
-              {/* Footer Insight */}
-              <div className="mt-16">
-                 <div className="p-10 rounded-[40px] bg-indigo-600/[0.03] border border-indigo-500/15 relative overflow-hidden group/footer">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/[0.04] blur-[120px] -mr-48 -mt-48 rounded-full transition-all duration-700 group-hover/footer:scale-110" />
-                    <div className="max-w-4xl relative z-10 leading-[1.7] text-[18px] font-medium italic text-foreground tracking-tight opacity-90">
-                       <MarkdownText content={selected.what_to_watch} />
-                    </div>
-                    <div className="mt-8 flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center group-hover/footer:rotate-12 transition-transform">
-                          <Target className="w-5 h-5 text-indigo-600" />
-                       </div>
-                       <div className="flex flex-col">
-                          <span className="text-[12px] font-black uppercase tracking-[0.3em] text-indigo-600">Strategic Outlook</span>
-                          <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Narrative Intelligence Engine</span>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-            </div>
-          )}
+              {selected.what_to_watch ? (
+                <section className="mt-8 rounded-xl border border-border bg-muted/30 p-4 sm:p-5">
+                  <div className="mb-2 flex items-center gap-2">
+                    <Target
+                      className="h-3.5 w-3.5 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      What to watch
+                    </h3>
+                  </div>
+                  <p className="text-[13.5px] leading-relaxed text-foreground/85">
+                    <MarkdownText content={decodeEntities(selected.what_to_watch)} />
+                  </p>
+                </section>
+              ) : null}
+            </article>
+          ) : null}
         </div>
       )}
     </div>

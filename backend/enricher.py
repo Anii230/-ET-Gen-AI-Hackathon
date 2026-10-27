@@ -1,3 +1,5 @@
+import re
+
 import spacy
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -62,7 +64,13 @@ def detect_category(text: str, default: str = "General") -> str:
     text_lower = text.lower()
     scores = {}
     for category, keywords in CATEGORY_KEYWORDS.items():
-        score = sum(1 for kw in keywords if kw in text_lower)
+        score = 0
+        for kw in keywords:
+            # Word-boundary matching: the previous substring check matched
+            # "app" inside "applicant" and similar false positives.
+            pattern = re.escape(kw.strip().lower()).replace(r"\ ", r"\s+")
+            if re.search(rf"(?<![a-z0-9]){pattern}(?![a-z0-9])", text_lower):
+                score += 1
         if score > 0:
             scores[category] = score
     if not scores:

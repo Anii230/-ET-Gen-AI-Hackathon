@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import cors_origins
-from database import engine, Base
+from database import engine, Base, SessionLocal
+from categorization import backfill_categories
 from llm import LLMServiceError
 from routers import feed, articles, chat, attention
 from routers import users
@@ -60,6 +61,19 @@ class UnhandledErrorMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+
+    # Additive, idempotent category mapping for articles that predate the
+    # taxonomy. Manual assignments are preserved; failures are logged and
+    # never prevent the API from starting.
+    db = SessionLocal()
+    try:
+        backfill_categories(db)
+    except Exception:  # noqa: BLE001
+        logger.exception("Category backfill could not run")
+        db.rollback()
+    finally:
+        db.close()
+
     yield
 
 

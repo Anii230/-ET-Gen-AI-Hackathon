@@ -1,82 +1,96 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { getBookmarks } from "@/lib/bookmarks";
-import { getArticle, Article } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Bookmark } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { CategoryTag } from "@/components/ui/category-tag";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getArticle, Article } from "@/lib/api";
+import { getBookmarks } from "@/lib/bookmarks";
+import { formatHeadline, formatPublishedAt, stripHtml } from "@/lib/utils";
 
 export default function SavedPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const ids = getBookmarks();
-    if (ids.length === 0) {
-      setLoading(false);
-      return;
-    }
-    Promise.all(ids.map(id => getArticle(id).catch(() => null)))
-      .then(results => {
-        setArticles(results.filter(Boolean) as Article[]);
+    let cancelled = false;
+
+    Promise.all(ids.map((id) => getArticle(id).catch(() => null)))
+      .then((results) => {
+        if (cancelled) return;
+        setArticles(results.filter((item): item is Article => item !== null));
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64 
-      text-muted-foreground text-sm">Loading saved articles...</div>
-  );
-
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-semibold">Saved</h1>
-        <span className="text-xs px-2 py-1 rounded-full 
-          bg-indigo-500/10 text-indigo-400 
-          border border-indigo-500/20">
+    <div className="mx-auto w-full max-w-[1100px] px-4 py-6 sm:px-6 sm:py-8">
+      <header className="mb-6 flex items-center gap-3">
+        <h1 className="font-heading text-[24px] font-semibold tracking-tight text-foreground sm:text-[28px]">
+          Saved
+        </h1>
+        <span className="rounded-[5px] border border-border bg-tag px-2 py-0.5 text-[11px] tabular-nums text-tag-foreground">
           {articles.length}
         </span>
-      </div>
+      </header>
 
-      {articles.length === 0 ? (
-        <div className="flex flex-col items-center 
-          justify-center h-64 gap-4">
-          <Bookmark className="w-12 h-12 text-muted-foreground" />
-          <p className="text-muted-foreground">Nothing saved yet</p>
-          <button
-            onClick={() => router.push('/home')}
-            className="text-sm text-indigo-400 
-              hover:text-indigo-300 transition-colors cursor-pointer"
-          >
-            Browse feed →
-          </button>
+      {loading ? (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-[148px] w-full rounded-xl" />
+          ))}
         </div>
+      ) : articles.length === 0 ? (
+        <EmptyState
+          icon={Bookmark}
+          title="Nothing saved yet"
+          description="Save a story from the feed or the reader and it will be waiting here."
+          action={
+            <Button asChild size="lg">
+              <Link href="/home">Browse the feed</Link>
+            </Button>
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 
-          lg:grid-cols-3 gap-4">
-          {articles.map(article => (
-            <div
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {articles.map((article) => (
+            <Link
               key={article.id}
-              onClick={() => router.push(`/home/article/${article.id}`)}
-              className="p-4 rounded-xl border border-border 
-                bg-card hover:border-border/80 
-                hover:-translate-y-0.5 transition-all 
-                duration-200 cursor-pointer"
+              href={`/home/article/${article.id}`}
+              className="group flex flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:border-border-hover hover:bg-card/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <span className="text-xs px-2 py-0.5 rounded-full 
-                bg-indigo-500/10 text-indigo-400 
-                border border-indigo-500/20">
-                {article.category}
-              </span>
-              <h3 className="mt-2 font-medium text-sm 
-                line-clamp-2 leading-snug">
-                {article.headline}
-              </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-2">
+                <CategoryTag>{article.category || "General"}</CategoryTag>
+                <span className="text-[10.5px] text-muted-foreground">
+                  {formatPublishedAt(article.published_at)}
+                </span>
+              </div>
+
+              <h2 className="mt-2.5 line-clamp-2 font-heading text-[14.5px] font-semibold leading-snug tracking-tight text-foreground group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
+                {formatHeadline(article.headline)}
+              </h2>
+
+              {article.summary ? (
+                <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">
+                  {stripHtml(article.summary)}
+                </p>
+              ) : null}
+
+              <p className="mt-auto pt-3 text-[11px] text-muted-foreground">
                 {article.source}
               </p>
-            </div>
+            </Link>
           ))}
         </div>
       )}

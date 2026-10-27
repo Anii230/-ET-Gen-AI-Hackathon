@@ -25,7 +25,12 @@ async function request<T>(
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, init);
-  } catch {
+  } catch (error) {
+    // Aborts are control flow, not failures. Re-throw so callers can ignore
+    // stale responses without surfacing a fake network error.
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
     // fetch rejects on connection refused / CORS failure, which browsers
     // report as a bare TypeError ("NetworkError"). Translate it.
     throw new ApiError(NETWORK_MESSAGE, 0, "network_error");
@@ -66,34 +71,103 @@ export type Article = {
   summary: string;
   source: string;
   category: string;
+  categories?: string[];
   url: string;
-  image_url?: string;
-  published_at: string;
+  image_url?: string | null;
+  published_at: string | null;
   read_time: number;
   sentiment_label: string;
   entities: string[];
   is_personalised: boolean;
 };
 
-export type BriefingResponse = {
-  briefing: string;
-  sources_used: string[];
-  ranked_count: number;
-  pipeline_steps: string[];
-  degraded?: boolean;
+/** One page of a cursor-paginated feed. */
+export type FeedPage = {
+  articles: Article[];
+  has_more: boolean;
+  next_cursor: string | null;
 };
 
-export async function getFeed(): Promise<Article[]> {
-  return request<Article[]>("/feed/", { cache: "no-store" }, "Failed to fetch feed");
+/** Canonical category with live article coverage. */
+export type CategoryInfo = {
+  id: string;
+  label: string;
+  article_count: number;
+};
+
+export type Profile = {
+  user_id: string;
+  category_weights: Record<string, number>;
+  topic_preferences: string[];
+  categories: string[];
+};
+
+export type FeedQuery = {
+  cursor?: string | null;
+  limit?: number;
+  signal?: AbortSignal;
+};
+
+export type PersonalisedFeedQuery = FeedQuery & {
+  userId?: string;
+  /**
+   * Canonical category IDs. Pass an explicit array (including an empty one)
+   * to override saved preferences. Omit to let the backend read the profile.
+   */
+  categories?: string[];
+};
+
+function feedSearch(query: FeedQuery): string {
+  const params = new URLSearchParams();
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.cursor) params.set("cursor", query.cursor);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export async function getFeed(query: FeedQuery = {}): Promise<FeedPage> {
+  return request<FeedPage>(
+    `/feed/${feedSearch(query)}`,
+    { cache: "no-store", signal: query.signal },
+    "Failed to fetch feed"
+  );
 }
 
 export async function getPersonalisedFeed(
-  userId: string
-): Promise<Article[]> {
-  return request<Article[]>(
-    `/feed/personalised?user_id=${encodeURIComponent(userId)}`,
-    { cache: "no-store" },
+  query: PersonalisedFeedQuery = {}
+): Promise<FeedPage> {
+  const params = new URLSearchParams();
+  params.set("user_id", query.userId || "demo_user");
+  if (query.limit) params.set("limit", String(query.limit));
+  if (query.cursor) params.set("cursor", query.cursor);
+  if (query.categories !== undefined) {
+    // Empty string is meaningful: it asks the backend for an honest empty
+    // page instead of silently treating the request as "no preference".
+    params.set("categories", query.categories.join(","));
+  }
+  return request<FeedPage>(
+    `/feed/personalised?${params.toString()}`,
+    { cache: "no-store", signal: query.signal },
     "Failed to fetch personalised feed"
+  );
+}
+
+export async function getCategories(
+  options: { signal?: AbortSignal } = {}
+): Promise<CategoryInfo[]> {
+  const data = await request<{ categories: CategoryInfo[] }>(
+    "/feed/categories",
+    { cache: "no-store", signal: options.signal },
+    "Failed to fetch categories"
+  );
+  return data.categories;
+}
+
+export async function getProfile(userId: string): Promise<Profile> {
+  return request<Profile>(
+    `/users/${encodeURIComponent(userId)}/profile`,
+    { cache: "no-store" },
+    "Failed to load your preferences"
   );
 }
 
@@ -104,6 +178,14 @@ export async function getArticle(id: string): Promise<Article> {
     "Article not found"
   );
 }
+
+export type BriefingResponse = {
+  briefing: string;
+  sources_used: string[];
+  ranked_count: number;
+  pipeline_steps: string[];
+  degraded?: boolean;
+};
 
 export async function getBriefing(
   userId: string,
@@ -165,17 +247,24 @@ export async function recordAttention(
   });
 }
 
+/**
+ * Persist the canonical category selection.
+ *
+ * Returns the normalized IDs so the client can reconcile aliases/duplicates.
+ */
 export async function savePreferences(
   userId: string,
-  topics: string[],
-  sources: string[],
-  depth: string
-): Promise<void> {
-  await requestVoid("/users/preferences", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ user_id: userId, topics, sources, depth }),
-  });
+  categories: string[]
+): Promise<{ categories: string[] }> {
+  return request<{ categories: string[] }>(
+    "/users/preferences",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId, categories }),
+    },
+    "Your preferences could not be saved."
+  );
 }
 
 export type TopicBriefing = {
@@ -203,7 +292,7 @@ export type StoryArc = {
     sentiment: string;
     article_id: string;
   }>;
-  key_players: Array<{name: string; mention_count: number}>;
+  key_players: Array<{ name: string; mention_count: number }>;
   overall_sentiment: string;
   sentiment_trend: string;
   what_to_watch: string;
@@ -226,9 +315,9 @@ export async function getTopicBriefing(
 }
 
 export async function getTrendingTopics(): Promise<{
-  topics: Array<{label: string; type: string; count: number}>
+  topics: Array<{ label: string; type: string; count: number }>;
 }> {
-  return request<{ topics: Array<{label: string; type: string; count: number}> }>(
+  return request<{ topics: Array<{ label: string; type: string; count: number }> }>(
     "/feed/trending-topics",
     { cache: "no-store" },
     "Failed to fetch topics"
@@ -236,5 +325,9 @@ export async function getTrendingTopics(): Promise<{
 }
 
 export async function getStoryArcs(): Promise<StoryArc[]> {
-  return request<StoryArc[]>("/story-arcs/", { cache: "no-store" }, "Failed to fetch story arcs");
+  return request<StoryArc[]>(
+    "/story-arcs/",
+    { cache: "no-store" },
+    "Failed to fetch story arcs"
+  );
 }

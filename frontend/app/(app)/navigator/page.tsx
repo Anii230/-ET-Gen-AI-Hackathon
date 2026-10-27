@@ -1,173 +1,255 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Brain, Check, ChevronRight, Compass, Plus } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { CategoryTag } from "@/components/ui/category-tag";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getFeed, Article } from "@/lib/api";
-import { Plus, Check, Brain, ChevronRight, Search, LayoutGrid } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { cn, formatHeadline, pluralize, stripHtml } from "@/lib/utils";
+
+function sentimentTone(label: string): string {
+  if (label === "positive") return "bg-success";
+  if (label === "negative") return "bg-destructive";
+  return "bg-muted-foreground/50";
+}
 
 export default function NavigatorPage() {
   const router = useRouter();
+  const shouldReduceMotion = useReducedMotion();
+
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    setMounted(true);
-    getFeed()
-      .then(setArticles)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+
+    getFeed({ limit: 50 })
+      .then((page) => {
+        if (!cancelled) setArticles(page.articles);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setArticles([]);
+          setError(
+            "The story library could not be loaded. Check the connection and try again."
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
   const categorizedArticles = useMemo(() => {
     const groups: Record<string, Article[]> = {};
-    articles.forEach(a => {
-      const cat = a.category || "General";
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(a);
+    articles.forEach((article) => {
+      const category = article.category || "General";
+      if (!groups[category]) groups[category] = [];
+      groups[category].push(article);
     });
     return groups;
   }, [articles]);
 
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
   const handleSendToChat = () => {
     if (selectedIds.length === 0) return;
-    const selectedArticles = articles.filter(a => selectedIds.includes(a.id));
+    const selectedArticles = articles.filter((article) =>
+      selectedIds.includes(article.id)
+    );
     const carry = {
       mode: "navigate",
       articleIds: selectedIds,
-      topicSummary: `Selection of ${selectedIds.length} articles across ${new Set(selectedArticles.map(a => a.category)).size} topics.`
+      topicSummary: `Selection of ${selectedIds.length} articles across ${
+        new Set(selectedArticles.map((article) => article.category)).size
+      } topics.`,
     };
     sessionStorage.setItem("et_navigator_selection", JSON.stringify(carry));
     router.push("/chat?mode=navigate");
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-[60vh] text-muted-foreground animate-pulse">
-      Initialising Intelligence Navigator...
-    </div>
-  );
-
   return (
-    <div className="p-8 max-w-[1200px] mx-auto min-h-screen pb-32">
-      <header className="mb-12">
-        <div className="flex items-center gap-3 mb-2">
-           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-              <Brain className="w-5 h-5 text-indigo-500" />
-           </div>
-           <h1 className="text-3xl font-black tracking-tight text-foreground">News Navigator</h1>
+    <div className="mx-auto min-h-full w-full max-w-[1200px] px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
+      <header className="mb-8">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-muted">
+            <Brain className="h-4 w-4 text-foreground" aria-hidden />
+          </span>
+          <h1 className="font-heading text-[24px] font-semibold tracking-tight text-foreground sm:text-[28px]">
+            News Navigator
+          </h1>
         </div>
-        <p className="text-muted-foreground max-w-xl text-lg">
-          Select stories across different domains to build your custom intelligence briefing.
+        <p className="mt-2 max-w-xl text-[13.5px] leading-relaxed text-muted-foreground">
+          Select stories across different domains to build a custom
+          topic-wise intelligence briefing.
         </p>
       </header>
 
-      {/* Topics Grid */}
-      <div className="space-y-12">
-        {Object.entries((categorizedArticles)).map(([category, items]) => (
-          <section key={category} className="space-y-6">
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-indigo-500" />
-                <h2 className="text-xl font-bold uppercase tracking-wider text-foreground/90">{category}</h2>
-                <span className="text-xs text-muted-foreground font-medium bg-secondary px-2 py-0.5 rounded-full">
-                  {items.length} Stories
-                </span>
+      {loading ? (
+        <div className="space-y-8">
+          {Array.from({ length: 2 }).map((_, group) => (
+            <section key={group} className="space-y-4">
+              <Skeleton className="h-4 w-40" />
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton key={index} className="h-[168px] w-full rounded-xl" />
+                ))}
               </div>
-            </div>
+            </section>
+          ))}
+        </div>
+      ) : error ? (
+        <ErrorState
+          title="Story library unavailable"
+          message={error}
+          onRetry={() => {
+            setLoading(true);
+            setError(null);
+            setReloadKey((key) => key + 1);
+          }}
+          retryLabel="Reload"
+        />
+      ) : articles.length === 0 ? (
+        <EmptyState
+          icon={Compass}
+          title="No stories to navigate"
+          description="The navigator needs ingested stories before you can build a selection."
+        />
+      ) : (
+        <div className="space-y-9">
+          {Object.entries(categorizedArticles).map(([category, items]) => (
+            <section key={category} className="space-y-3">
+              <div className="flex items-center justify-between border-b border-border pb-2.5">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    {category}
+                  </h2>
+                  <span className="text-[10.5px] tabular-nums text-muted-foreground/70">
+                    {items.length} {pluralize(items.length, "story", "stories")}
+                  </span>
+                </div>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map((article) => {
-                const isSelected = selectedIds.includes(article.id);
-                return (
-                  <motion.div
-                    key={article.id}
-                    whileHover={{ y: -4 }}
-                    className={`
-                      relative p-5 rounded-2xl border transition-all duration-300 group cursor-pointer
-                      ${isSelected 
-                        ? 'bg-indigo-500/5 border-indigo-500/50 ring-1 ring-indigo-500/20' 
-                        : 'bg-card border-border hover:border-indigo-500/30'}
-                    `}
-                    onClick={() => toggleSelection(article.id)}
-                  >
-                    <div className="absolute top-4 right-4 z-10">
-                       <button
-                         className={`
-                           w-8 h-8 rounded-full flex items-center justify-center transition-all
-                           ${isSelected 
-                             ? 'bg-indigo-500 text-white' 
-                             : 'bg-secondary text-muted-foreground hover:bg-indigo-500/20 hover:text-indigo-400 border border-border'}
-                         `}
-                       >
-                         {isSelected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                       </button>
-                    </div>
-
-                    <div className="flex flex-col h-full gap-3">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">
-                        {article.source}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((article) => {
+                  const isSelected = selectedIds.includes(article.id);
+                  return (
+                    <motion.button
+                      key={article.id}
+                      type="button"
+                      onClick={() => toggleSelection(article.id)}
+                      aria-pressed={isSelected}
+                      whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+                      transition={{ duration: 0.16, ease: "easeOut" }}
+                      className={cn(
+                        "relative flex flex-col gap-2 rounded-xl border p-4 text-left transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                        isSelected
+                          ? "border-accent/40 bg-accent-soft"
+                          : "border-border bg-card hover:border-border-hover"
+                      )}
+                    >
+                      <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full border transition-colors">
+                        <span
+                          className={cn(
+                            "flex h-6 w-6 items-center justify-center rounded-full",
+                            isSelected
+                              ? "bg-accent text-white"
+                              : "border border-border bg-background text-muted-foreground"
+                          )}
+                        >
+                          {isSelected ? (
+                            <Check className="h-3.5 w-3.5" aria-hidden />
+                          ) : (
+                            <Plus className="h-3.5 w-3.5" aria-hidden />
+                          )}
+                        </span>
                       </span>
-                      <h3 className="font-bold text-[15px] leading-snug group-hover:text-indigo-400 transition-colors line-clamp-2">
-                        {article.headline}
-                      </h3>
-                      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed opacity-80">
-                        {article.summary}
-                      </p>
-                      
-                      <div className="mt-auto pt-2 flex items-center justify-between">
-                         <span className="text-[10px] text-muted-foreground/60">{article.read_time} min read</span>
-                         <div className={`w-1.5 h-1.5 rounded-full ${
-                           article.sentiment_label === 'positive' ? 'bg-emerald-500' :
-                           article.sentiment_label === 'negative' ? 'bg-rose-500' : 'bg-indigo-500/40'
-                         }`} />
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
 
-      {/* Sticky Selection Bar */}
+                      <CategoryTag className="mr-10 self-start">
+                        {article.source}
+                      </CategoryTag>
+
+                      <h3 className="line-clamp-2 pr-6 font-heading text-[14px] font-semibold leading-snug tracking-tight text-foreground">
+                        {formatHeadline(article.headline)}
+                      </h3>
+
+                      {article.summary ? (
+                        <p className="line-clamp-2 text-[12px] leading-relaxed text-muted-foreground">
+                          {stripHtml(article.summary)}
+                        </p>
+                      ) : null}
+
+                      <div className="mt-auto flex items-center justify-between pt-2">
+                        <span className="text-[10.5px] text-muted-foreground">
+                          {article.read_time || 3} min read
+                        </span>
+                        <span
+                          aria-label={`Sentiment: ${article.sentiment_label}`}
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            sentimentTone(article.sentiment_label)
+                          )}
+                        />
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
       <AnimatePresence>
-        {selectedIds.length > 0 && (
+        {selectedIds.length > 0 ? (
           <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-[500px] px-4"
+            initial={shouldReduceMotion ? {} : { y: 80, opacity: 0 }}
+            animate={shouldReduceMotion ? {} : { y: 0, opacity: 1 }}
+            exit={shouldReduceMotion ? {} : { y: 80, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-x-0 bottom-20 z-40 mx-auto w-full max-w-[520px] px-4 md:bottom-6"
           >
-            <div className="bg-background/80 backdrop-blur-xl border border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-6 ring-1 ring-white/10">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                     <Brain className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{selectedIds.length} Articles Added</p>
-                    <p className="text-[11px] text-muted-foreground">Ready for topic-wise synthesis</p>
-                  </div>
-               </div>
-               
-               <button 
-                 onClick={handleSendToChat}
-                 className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 group shadow-lg shadow-indigo-600/20"
-               >
-                 Synthesize
-                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-               </button>
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-popover p-3 pl-4 shadow-popover">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <Brain className="h-4 w-4" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground">
+                    {selectedIds.length}{" "}
+                    {pluralize(selectedIds.length, "story", "stories")} selected
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Ready for topic-wise synthesis
+                  </p>
+                </div>
+              </div>
+
+              <Button size="lg" onClick={handleSendToChat} className="flex-shrink-0">
+                Synthesise
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+              </Button>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </div>
   );

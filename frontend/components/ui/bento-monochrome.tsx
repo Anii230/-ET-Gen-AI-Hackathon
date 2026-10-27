@@ -1,224 +1,233 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import Link from "next/link";
 import { Clock, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-export type BentoArticle = {
-  id: string;
-  category: string;
-  categoryColor: string;
-  headline: string;
-  summary: string;
-  source: string;
-  time: string;
-  readTime: string;
-  isPersonalised: boolean;
-  image_url?: string;
+import { CategoryTag } from "@/components/ui/category-tag";
+import type { Article } from "@/lib/api";
+import {
+  cn,
+  formatHeadline,
+  formatPublishedAt,
+  stripHtml,
+} from "@/lib/utils";
+
+type CategoryContext = {
+  /** Category ids the reader explicitly follows. */
+  preferred?: string[];
+  /** Canonical id -> display label, from the categories endpoint. */
+  labels?: Map<string, string>;
 };
 
-function getSpan(index: number): string {
-  const pattern = [
-    "md:col-span-4 md:row-span-2",  // 0: hero
-    "md:col-span-2 md:row-span-1",  // 1: top right
-    "md:col-span-2 md:row-span-1",  // 2: mid right
-    "md:col-span-3 md:row-span-1",  // 3: bottom left
-    "md:col-span-3 md:row-span-1",  // 4: bottom right
-    "md:col-span-2 md:row-span-1",  // 5
-    "md:col-span-2 md:row-span-1",  // 6
-    "md:col-span-2 md:row-span-1",  // 7
-    "md:col-span-3 md:row-span-1",  // 8
-    "md:col-span-3 md:row-span-1",  // 9
-  ];
-  return pattern[index % pattern.length];
+function isPersonalised(article: Article) {
+  return Boolean(article.is_personalised);
 }
 
-function getCategoryStyle(category: string): string {
-  const styles: Record<string, string> = {
-    Markets: "bg-green-500/10 text-green-400 border-green-500/20",
-    Economy: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    Tech: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    Startups: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    Policy: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    Science: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-    Sports: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-    Entertainment: "bg-pink-500/10 text-pink-400 border-pink-500/20",
-    Business: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
-    General: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
-  };
-  return styles[category] || styles.General;
+/**
+ * Show the category that earned the article its place in For You, falling back
+ * to the source's primary label. This keeps a Technology filter from showing
+ * cards tagged only "Markets & Investing" for multi-label stories.
+ */
+function categoryLabel(article: Article, context: CategoryContext): string {
+  const preferred = context.preferred ?? [];
+  const articleCategories = article.categories ?? [];
+  if (preferred.length > 0 && articleCategories.length > 0) {
+    const match = preferred.find((id) => articleCategories.includes(id));
+    const label = match ? context.labels?.get(match) : undefined;
+    if (label) return label;
+  }
+  return article.category || "General";
 }
 
-function getTopBorderStyle(category: string): string {
-  const styles: Record<string, string> = {
-    Markets: "bg-green-500",
-    Economy: "bg-emerald-500",
-    Tech: "bg-blue-500",
-    Startups: "bg-purple-500",
-    Policy: "bg-amber-500",
-    Science: "bg-teal-500",
-    Sports: "bg-orange-500",
-    Entertainment: "bg-pink-500",
-    Business: "bg-cyan-500",
-    General: "bg-zinc-500",
-  };
-  return styles[category] || styles.General;
+function Meta({
+  article,
+  inverted = false,
+}: {
+  article: Article;
+  inverted?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "mt-auto flex items-center gap-1.5 pt-4 text-[11px]",
+        inverted ? "text-white/70" : "text-muted-foreground"
+      )}
+    >
+      <span className="truncate">{article.source || "Unknown"}</span>
+      <span aria-hidden>·</span>
+      <time dateTime={article.published_at ?? undefined}>
+        {formatPublishedAt(article.published_at)}
+      </time>
+      <span className="ml-auto flex flex-shrink-0 items-center gap-1">
+        <Clock className="h-3 w-3 opacity-70" aria-hidden />
+        {article.read_time || 3}m
+      </span>
+    </div>
+  );
 }
 
-export function BentoMonochrome({ articles, onArticleClick }: { articles: BentoArticle[]; onArticleClick?: (id: string) => void }) {
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const checkTheme = () => setIsDark(document.documentElement.classList.contains("dark"));
-    checkTheme();
-    const observer = new MutationObserver(checkTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
+function HeroCard({
+  article,
+  context,
+  fullWidth = false,
+}: {
+  article: Article;
+  context: CategoryContext;
+  fullWidth?: boolean;
+}) {
+  const image = article.image_url || "";
+  const inverted = Boolean(image);
 
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 auto-rows-[minmax(180px,auto)] pb-12">
-        {articles.map((article, i) => {
-          const isHero = i === 0;
+    <Link
+      href={`/home/article/${article.id}`}
+      className={cn(
+        "group relative flex min-h-[340px] flex-col justify-end overflow-hidden rounded-xl border border-border bg-card p-6",
+        "transition-colors hover:border-border-hover",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        fullWidth ? "md:col-span-6" : "md:col-span-4 md:row-span-2"
+      )}
+    >
+      {image ? (
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          style={{ backgroundImage: `url(${image})` }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.18) 100%)",
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[linear-gradient(to_bottom,var(--accent-soft),transparent)]"
+        />
+      )}
 
-          return (
-            <motion.div
-              key={article.id}
-              onClick={() => onArticleClick?.(article.id)}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
+      <div className="relative z-10">
+        <div className="flex flex-wrap items-center gap-2">
+          <CategoryTag
+            className={cn(
+              inverted &&
+                "border-white/20 bg-white/10 text-white/90 backdrop-blur-sm"
+            )}
+          >
+            {categoryLabel(article, context)}
+          </CategoryTag>
+          {isPersonalised(article) ? (
+            <span
               className={cn(
-                "group relative flex flex-col overflow-hidden rounded-2xl p-6 transition-transform duration-300 hover:-translate-y-1 cursor-pointer",
-                "border shadow-sm",
-                !(isHero && article.image_url) && "bg-[var(--background-secondary)] border-[var(--border)] hover:border-[var(--border-hover)]",
-                (isHero && article.image_url) ? "justify-end border-transparent" : "justify-between",
-                getSpan(i)
+                "inline-flex items-center gap-1 text-[10px] font-medium",
+                inverted ? "text-white/70" : "text-accent-soft-foreground"
               )}
             >
-              {/* Image backgrounds */}
-              {isHero && article.image_url && (
-                <div
-                  style={{
-                    backgroundImage: `url(${article.image_url})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    position: 'absolute',
-                    inset: 0,
-                    zIndex: 0,
-                    borderRadius: 'inherit',
-                    overflow: 'hidden',
-                  }}
-                  className="opacity-80 transition-opacity duration-300 group-hover:opacity-100"
-                >
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.5), rgba(0,0,0,0.2))'
-                  }} />
-                </div>
-              )}
-              
-              {!isHero && article.image_url && (
-                <div
-                  style={{
-                    backgroundImage: `url(${article.image_url})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    position: 'absolute',
-                    inset: 0,
-                    zIndex: 0,
-                    borderRadius: 'inherit',
-                    overflow: 'hidden',
-                  }}
-                  className="opacity-20 transition-opacity duration-300 group-hover:opacity-50"
-                />
-              )}
-              {/* Subtle background wash effect */}
-              <div 
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: isDark
-                    ? "radial-gradient(100% 100% at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 100%)"
-                    : "radial-gradient(100% 100% at 50% 0%, rgba(0,0,0,0.02) 0%, transparent 100%)"
-                }}
-              />
-              
-              {/* Thin colored top border */}
-              <div
-                className={cn(
-                  "absolute top-0 left-0 right-0 h-[2px]",
-                  getTopBorderStyle(article.category)
-                )}
-              />
+              <Sparkles className="h-3 w-3" aria-hidden />
+              For You
+            </span>
+          ) : null}
+        </div>
 
-              {/* Top row */}
-              <div className="flex items-center gap-2 relative z-10 w-full mb-4">
-                <span
-                  className={cn(
-                    "text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider",
-                    (isHero && article.image_url)
-                      ? "bg-white/20 text-white border border-white/30 backdrop-blur-sm shadow-sm"
-                      : getCategoryStyle(article.category)
-                  )}
-                >
-                  {article.category}
-                </span>
+        <h2
+          className={cn(
+            "mt-4 text-balance font-heading text-[24px] font-semibold leading-[1.18] tracking-tight sm:text-[30px]",
+            inverted ? "text-white" : "text-foreground",
+            "group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4"
+          )}
+        >
+          {formatHeadline(article.headline)}
+        </h2>
 
-                {article.isPersonalised && (
-                  <span className="flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] px-2 py-0.5 rounded-full ml-auto font-medium">
-                    <Sparkles className="w-3" />
-                    For You
-                  </span>
-                )}
-              </div>
+        {article.summary ? (
+          <p
+            className={cn(
+              "mt-3 line-clamp-3 max-w-[62ch] text-[14px] leading-relaxed",
+              inverted ? "text-white/78" : "text-muted-foreground"
+            )}
+          >
+            {stripHtml(article.summary)}
+          </p>
+        ) : null}
 
-              {/* Middle row */}
-              <div className="flex flex-col gap-2 relative z-10 flex-1">
-                <h3
-                  className={cn(
-                    "font-semibold tracking-tight leading-snug",
-                    isHero ? "text-2xl lg:text-3xl" : "text-base lg:text-lg",
-                    (isHero && article.image_url) ? "text-white" : "text-foreground"
-                  )}
-                >
-                  {article.headline}
-                </h3>
-
-                <p
-                  className={cn(
-                    "text-sm leading-relaxed mt-2",
-                    isHero ? "line-clamp-3" : "line-clamp-2",
-                    (isHero && article.image_url) ? "text-white/80" : "text-neutral-600 dark:text-neutral-400"
-                  )}
-                >
-                  {article.summary}
-                </p>
-              </div>
-
-              {/* Bottom row */}
-              <div className="flex items-center gap-2 mt-auto pt-6 relative z-10">
-                <span className={cn(
-                  "text-xs font-medium tracking-wide",
-                  (isHero && article.image_url) ? "text-white/60" : "text-neutral-500 dark:text-neutral-500"
-                )}>
-                  {article.source} <span className="mx-1 opacity-50">·</span> {article.time}
-                </span>
-
-                <span className={cn(
-                  "flex items-center gap-1 text-xs font-medium tracking-wide ml-auto",
-                  (isHero && article.image_url) ? "text-white/60" : "text-neutral-500 dark:text-neutral-500"
-                )}>
-                  <Clock className="w-3.5 h-3.5 opacity-60" />
-                  {article.readTime}
-                </span>
-              </div>
-            </motion.div>
-          );
-        })}
+        <Meta article={article} inverted={inverted} />
       </div>
+    </Link>
+  );
+}
+
+function StoryCard({
+  article,
+  context,
+}: {
+  article: Article;
+  context: CategoryContext;
+}) {
+  return (
+    <Link
+      href={`/home/article/${article.id}`}
+      className={cn(
+        "group flex min-h-[196px] flex-col rounded-xl border border-border bg-card p-5",
+        "transition-colors hover:border-border-hover hover:bg-card/90",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "md:col-span-2"
+      )}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <CategoryTag>{categoryLabel(article, context)}</CategoryTag>
+        {isPersonalised(article) ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-accent-soft-foreground">
+            <Sparkles className="h-3 w-3" aria-hidden />
+            For You
+          </span>
+        ) : null}
+      </div>
+
+      <h3 className="mt-3 line-clamp-2 font-heading text-[15.5px] font-semibold leading-snug tracking-tight text-foreground group-hover:underline group-hover:decoration-1 group-hover:underline-offset-4">
+        {formatHeadline(article.headline)}
+      </h3>
+
+      {article.summary ? (
+        <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-muted-foreground">
+          {stripHtml(article.summary)}
+        </p>
+      ) : null}
+
+      <Meta article={article} />
+    </Link>
+  );
+}
+
+export function BentoMonochrome({
+  articles,
+  preferredCategories,
+  categoryLabels,
+}: {
+  articles: Article[];
+  preferredCategories?: string[];
+  categoryLabels?: Map<string, string>;
+}) {
+  if (articles.length === 0) return null;
+
+  const [lead, ...rest] = articles;
+  const context: CategoryContext = {
+    preferred: preferredCategories,
+    labels: categoryLabels,
+  };
+
+  return (
+    <div className="grid grid-cols-1 gap-3 md:auto-rows-[minmax(210px,auto)] md:grid-cols-6">
+      <HeroCard
+        article={lead}
+        context={context}
+        fullWidth={rest.length === 0}
+      />
+      {rest.map((article) => (
+        <StoryCard key={article.id} article={article} context={context} />
+      ))}
     </div>
   );
 }

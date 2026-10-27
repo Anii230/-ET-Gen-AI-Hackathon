@@ -8,6 +8,7 @@ class ArticleOut(BaseModel):
     summary: Optional[str]
     source: str
     category: str
+    categories: List[str] = []
     url: str
     image_url: Optional[str] = None
     published_at: Optional[datetime]
@@ -18,6 +19,22 @@ class ArticleOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class FeedPage(BaseModel):
+    articles: List[ArticleOut]
+    has_more: bool = False
+    next_cursor: Optional[str] = None
+
+
+class CategoryInfo(BaseModel):
+    id: str
+    label: str
+    article_count: int
+
+
+class CategoriesOut(BaseModel):
+    categories: List[CategoryInfo]
 
 class AttentionIn(BaseModel):
     user_id: str

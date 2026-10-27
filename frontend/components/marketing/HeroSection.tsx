@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Brain, TrendingUp, Bookmark } from "lucide-react";
-import { useRef } from "react";
 import { categoryStyles } from "@/lib/mock-data";
 
 const PREVIEW_CARDS = [

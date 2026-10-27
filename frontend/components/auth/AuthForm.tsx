@@ -171,14 +171,15 @@ export function AuthForm() {
     <div className="flex-1 flex flex-col justify-center py-12 px-6 sm:px-10 lg:px-14">
       <div className="max-w-sm w-full mx-auto">
         {/* Mode toggle */}
-        <div className="flex items-center bg-muted rounded-xl p-1 mb-8">
+        <div className="flex items-center bg-muted rounded-lg p-0.5 mb-8">
           {(["login", "signup"] as AuthMode[]).map((m) => (
             <button
               key={m}
+              type="button"
               onClick={() => switchMode(m)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer capitalize ${
+              className={`flex-1 py-2 rounded-[6px] text-sm font-medium transition-colors duration-200 cursor-pointer capitalize ${
                 mode === m
-                  ? "bg-background text-foreground shadow-sm"
+                  ? "bg-card text-foreground shadow-card"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -350,9 +351,9 @@ export function AuthForm() {
             >
               <button
                 type="button"
-                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-accent transition-all duration-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <Globe className="w-4 h-4" />
+                <Globe className="w-4 h-4" aria-hidden />
                 Continue with Google
               </button>
             </motion.div>

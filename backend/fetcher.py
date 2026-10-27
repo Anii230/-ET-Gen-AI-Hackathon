@@ -53,6 +53,21 @@ RSS_FEEDS = [
         "source": "NDTV Profit",
         "category": "Markets"
     },
+    {
+        "url": "https://www.livemint.com/rss/politics",
+        "source": "Mint",
+        "category": "Politics"
+    },
+    {
+        "url": "https://www.livemint.com/rss/science",
+        "source": "Mint",
+        "category": "Science"
+    },
+    {
+        "url": "https://www.livemint.com/rss/companies",
+        "source": "Mint",
+        "category": "Business"
+    },
 ]
 
 def estimate_read_time(text: str) -> int:
@@ -63,7 +78,20 @@ def fetch_rss_articles() -> list:
     articles = []
     for feed_config in RSS_FEEDS:
         try:
-            feed = feedparser.parse(feed_config["url"])
+            # Explicit timeout: feedparser.parse(url) has none and a single
+            # stalled feed used to block the whole first page render.
+            response = requests.get(
+                feed_config["url"],
+                timeout=8,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; ET-AI-News/1.0)"},
+            )
+            if response.status_code >= 400:
+                print(
+                    f"RSS fetch skipped ({response.status_code}) for "
+                    f"{feed_config['url']}"
+                )
+                continue
+            feed = feedparser.parse(response.content)
             for entry in feed.entries[:8]:
                 article_id = hashlib.md5(
                     entry.get("link", "").encode()

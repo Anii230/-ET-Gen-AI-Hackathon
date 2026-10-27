@@ -1,68 +1,64 @@
-import { Zap, Quote } from "lucide-react";
+import { Quote } from "lucide-react";
 import Link from "next/link";
 
+import { CategoryTag } from "@/components/ui/category-tag";
+
 const miniCards = [
-  { category: "AI",      color: "bg-indigo-500/10 text-indigo-300 border border-indigo-500/20",  text: "GPT-5 reshapes AI research benchmarks worldwide" },
-  { category: "Economy", color: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20", text: "RBI signals sustained rate pause at 4.1% CPI" },
-  { category: "Tech",    color: "bg-blue-500/10 text-blue-300 border border-blue-500/20",         text: "Jio unveils ₹40,000 Cr 6G roadmap" },
+  {
+    category: "AI",
+    text: "GPT-5 reshapes AI research benchmarks worldwide",
+  },
+  {
+    category: "Economy",
+    text: "RBI signals sustained rate pause at 4.1% CPI",
+  },
+  {
+    category: "Tech",
+    text: "Jio unveils ₹40,000 Cr 6G roadmap",
+  },
 ];
 
 export function AuthDecorativePanel() {
   return (
-    <div className="hidden lg:flex w-[42%] flex-col bg-[#0a0a0a] relative overflow-hidden">
-      {/* Radial glow */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,102,241,0.18), transparent 60%)",
-        }}
-      />
-      {/* Grid texture */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none opacity-[0.04]"
-        style={{
-          backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-
-      <div className="relative z-10 flex flex-col h-full p-10">
-        {/* Logo */}
+    <div className="relative hidden w-[42%] flex-col overflow-hidden border-r border-border bg-background-secondary lg:flex">
+      <div className="relative z-10 flex h-full flex-col p-10">
         <Link
           href="/"
-          className="flex items-center gap-2 w-fit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 rounded-lg"
+          className="flex w-fit items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center">
-            <span className="font-heading font-bold text-[10px] text-white leading-none">ET</span>
-          </div>
-          <span className="font-heading font-bold text-[15px] tracking-tight text-white">
-            ET <span className="text-indigo-400">AI</span>
-            <span className="text-indigo-400">·</span>
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
+            <span className="font-heading text-[10px] font-bold leading-none text-primary-foreground">
+              ET
+            </span>
+          </span>
+          <span className="font-heading text-[15px] font-semibold tracking-tight text-foreground">
+            ET AI
           </span>
         </Link>
 
-        {/* Quote */}
-        <div className="mt-auto mb-10">
-          <Quote className="w-5 h-5 text-indigo-500/50 mb-4" />
-          <p className="text-white/85 text-xl font-heading font-medium italic leading-snug mb-3">
-            "Intelligence, delivered personally."
+        <div className="mt-auto mb-10 max-w-[320px]">
+          <Quote
+            className="mb-4 h-5 w-5 text-muted-foreground/50"
+            aria-hidden
+          />
+          <p className="font-heading text-[20px] font-medium italic leading-snug text-foreground">
+            Intelligence, delivered personally.
           </p>
-          <p className="text-white/35 text-xs font-mono">ET AI · AI-Native News Manifesto</p>
+          <p className="mt-3 font-mono text-[11px] text-muted-foreground">
+            ET AI · AI-Native News
+          </p>
         </div>
 
-        {/* Mini cards */}
-        <div className="space-y-2.5">
-          {miniCards.map((card, i) => (
+        <div className="space-y-2">
+          {miniCards.map((card) => (
             <div
-              key={i}
-              className="rounded-xl bg-white/[0.05] border border-white/[0.08] p-4 flex items-center gap-3 hover:bg-white/[0.08] transition-all duration-200"
+              key={card.text}
+              className="flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-3"
             >
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${card.color}`}>
+              <CategoryTag className="flex-shrink-0">
                 {card.category}
-              </span>
-              <p className="text-white/65 text-[12px] leading-snug flex-1 line-clamp-1">
+              </CategoryTag>
+              <p className="line-clamp-1 flex-1 text-[12px] leading-snug text-muted-foreground">
                 {card.text}
               </p>
             </div>

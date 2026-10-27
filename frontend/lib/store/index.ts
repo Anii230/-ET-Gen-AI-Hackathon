@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+export type FeedTab = "general" | "foryou";
+
 interface SidebarStore {
   isCollapsed: boolean;
   toggle: () => void;
@@ -13,8 +15,8 @@ export const useSidebarStore = create<SidebarStore>((set) => ({
 }));
 
 interface FeedStore {
-  activeTab: "general" | "for-you";
-  setActiveTab: (tab: "general" | "for-you") => void;
+  activeTab: FeedTab;
+  setActiveTab: (tab: FeedTab) => void;
 }
 
 export const useFeedStore = create<FeedStore>((set) => ({

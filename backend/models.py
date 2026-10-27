@@ -1,4 +1,15 @@
-from sqlalchemy import Column, String, Float, Boolean, Integer, DateTime, Text, JSON
+from sqlalchemy import (
+    Column,
+    String,
+    Float,
+    Boolean,
+    Integer,
+    DateTime,
+    Text,
+    JSON,
+    ForeignKey,
+    Index,
+)
 from sqlalchemy.sql import func
 from database import Base
 
@@ -19,6 +30,28 @@ class Article(Base):
     entities = Column(JSON, default=list)
     enriched = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
+
+class ArticleCategory(Base):
+    """Many-to-many article ↔ canonical category mapping.
+
+    ``source`` records provenance so a manual assignment is never removed by
+    the automatic backfill. The composite primary key makes re-runs idempotent.
+    """
+
+    __tablename__ = "article_categories"
+    article_id = Column(
+        String,
+        ForeignKey("articles.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    category = Column(String, primary_key=True)
+    source = Column(String, nullable=False, default="keyword")
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_article_categories_category", "category"),
+    )
+
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"

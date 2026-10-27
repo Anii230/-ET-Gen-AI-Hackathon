@@ -22,9 +22,11 @@
   --color-border:              var(--border);
   --color-border-hover:        var(--border-hover);
 
-  /* Accent — indigo brand */
+  /* Accent — restrained indigo brand */
   --color-accent:              var(--accent);
   --color-accent-hover:        var(--accent-hover);
+  --color-accent-soft:         var(--accent-soft);
+  --color-accent-soft-foreground: var(--accent-soft-foreground);
 
   /* Semantic */
   --color-card:                var(--card);
@@ -34,8 +36,16 @@
   --color-primary:             var(--primary);
   --color-primary-foreground:  var(--primary-foreground);
   --color-destructive:         var(--destructive);
+  --color-success:             var(--success);
+  --color-warning:             var(--warning);
   --color-ring:                var(--ring);
   --color-input:               var(--input);
+  --color-tag:                 var(--tag);
+  --color-tag-foreground:      var(--tag-foreground);
+
+  /* Elevation */
+  --shadow-card:               0 1px 2px rgb(0 0 0 / 0.03);
+  --shadow-popover:            0 16px 40px rgb(0 0 0 / 0.12);
 
   /* Sidebar */
   --color-sidebar:                    var(--sidebar);
@@ -68,82 +78,98 @@
    LIGHT MODE
    ───────────────────────────────────────────── */
 :root {
+  color-scheme: light;
   --background:           #fafaf9;
-  --background-secondary: #f5f5f4;
-  --background-tertiary:  #eeeeec;
-  --foreground:           #0a0a0a;
-  --foreground-secondary: #71717a;
+  --background-secondary: #f4f4f1;
+  --background-tertiary:  #ebebe7;
+  --foreground:           #121212;
+  --foreground-secondary: #6b6b70;
 
-  --border:               #e4e4e0;
-  --border-hover:         #d0d0cc;
+  --border:               #e3e3de;
+  --border-hover:         #cfcfc9;
 
-  --accent:               #6366f1;
-  --accent-hover:         #4f46e5;
+  --accent:               #4f46e5;
+  --accent-hover:         #4338ca;
+  --accent-soft:          rgba(79, 70, 229, 0.08);
+  --accent-soft-foreground: #4338ca;
 
-  --card:                 #f5f5f4;
-  --card-foreground:      #0a0a0a;
+  --card:                 #ffffff;
+  --card-foreground:      #121212;
 
-  --muted:                #eeeeec;
-  --muted-foreground:     #71717a;
+  --muted:                #f1f1ed;
+  --muted-foreground:     #6b6b70;
 
-  --primary:              #6366f1;
+  --primary:              #4f46e5;
   --primary-foreground:   #ffffff;
 
-  --destructive:          #dc2626;
-  --ring:                 #6366f1;
-  --input:                #e4e4e0;
+  --destructive:          #b42318;
+  --success:              #157f3c;
+  --warning:              #a15c07;
+  --ring:                 #4f46e5;
+  --input:                #e3e3de;
 
   --popover:              #ffffff;
-  --popover-foreground:   #0a0a0a;
+  --popover-foreground:   #121212;
+
+  --tag:                  #f1f1ed;
+  --tag-foreground:       #52525b;
 
   /* Sidebar */
-  --sidebar:                   #f5f5f4;
-  --sidebar-foreground:        #0a0a0a;
-  --sidebar-accent:            rgba(99,102,241,0.08);
-  --sidebar-accent-foreground: #4f46e5;
-  --sidebar-border:            #e4e4e0;
-  --sidebar-ring:              #6366f1;
+  --sidebar:                   #f7f7f4;
+  --sidebar-foreground:        #121212;
+  --sidebar-accent:            rgba(79, 70, 229, 0.08);
+  --sidebar-accent-foreground: #4338ca;
+  --sidebar-border:            #e3e3de;
+  --sidebar-ring:              #4f46e5;
 }
 
 /* ─────────────────────────────────────────────
    DARK MODE
    ───────────────────────────────────────────── */
 .dark {
-  --background:           #0a0a0a;
-  --background-secondary: #111111;
-  --background-tertiary:  #1a1a1a;
-  --foreground:           #fafafa;
+  color-scheme: dark;
+  --background:           #0b0b0c;
+  --background-secondary: #111113;
+  --background-tertiary:  #18181b;
+  --foreground:           #f4f4f5;
   --foreground-secondary: #a1a1aa;
 
-  --border:               #222222;
-  --border-hover:         #333333;
+  --border:               #26262a;
+  --border-hover:         #3a3a40;
 
-  --accent:               #6366f1;
-  --accent-hover:         #4f46e5;
+  --accent:               #818cf8;
+  --accent-hover:         #a5b4fc;
+  --accent-soft:          rgba(129, 140, 248, 0.10);
+  --accent-soft-foreground: #c7d2fe;
 
-  --card:                 #111111;
-  --card-foreground:      #fafafa;
+  --card:                 #121214;
+  --card-foreground:      #f4f4f5;
 
-  --muted:                #1a1a1a;
+  --muted:                #1b1b1f;
   --muted-foreground:     #a1a1aa;
 
   --primary:              #6366f1;
   --primary-foreground:   #ffffff;
 
   --destructive:          #f87171;
-  --ring:                 #6366f1;
-  --input:                #222222;
+  --success:              #4ade80;
+  --warning:              #fbbf24;
+  --ring:                 #818cf8;
+  --input:                #2a2a30;
 
-  --popover:              #111111;
-  --popover-foreground:   #fafafa;
+  --popover:              #141417;
+  --popover-foreground:   #f4f4f5;
+
+  --tag:                  #1b1b1f;
+  --tag-foreground:       #b4b4bc;
 
   /* Sidebar */
-  --sidebar:                   #111111;
-  --sidebar-foreground:        #fafafa;
-  --sidebar-accent:            rgba(99,102,241,0.08);
-  --sidebar-accent-foreground: #818cf8;
-  --sidebar-border:            #222222;
-  --sidebar-ring:              #6366f1;
+  --sidebar:                   #0f0f11;
+  --sidebar-foreground:        #f4f4f5;
+  --sidebar-accent:            rgba(129, 140, 248, 0.10);
+  --sidebar-accent-foreground: #c7d2fe;
+  --sidebar-border:            #222226;
+  --sidebar-ring:              #818cf8;
 }
 
 /* ─────────────────────────────────────────────
@@ -161,11 +187,19 @@
     font-family: var(--font-inter), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-  /* All interactive elements inherit 200ms ease-out */
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--accent-soft-foreground);
+  }
+
+  /* All interactive elements inherit the shared motion rhythm */
   a, button, [role="button"] {
-    transition: all 200ms ease-out;
+    transition: color 160ms ease-out, background-color 160ms ease-out,
+      border-color 160ms ease-out, opacity 160ms ease-out,
+      transform 160ms ease-out;
   }
 
   :focus-visible {
@@ -176,6 +210,21 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─────────────────────────────────────────────
